@@ -10,3 +10,4 @@ Resources:
 * Data relating to [this paper](https://www.nature.com/articles/s41586-019-1787-x)
 * This has been done in pynwb in [this repo](https://github.com/SteinmetzLab/dataToNWB)
 * Analysis code [here](https://github.com/nsteinme/steinmetz-et-al-2019)
+* NWB dandi-set [here](https://dandiarchive.org/dandiset/000017/draft)
