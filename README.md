@@ -4,4 +4,4 @@ Converting the “Distributed coding” dataset ([Distributed coding of choice, 
  * Convert Neuropixel electrophysiology data. Aim to build a function that can be applied generally to Neuropixel datasets that have a similar form.
  * Develop custom experiment-specific conversion code for behavioral data such as wheel position and lick times, and visual stimulation times.
 
-INCF/Mathworks Summer Of Code project.
+INCF/Mathworks for Neuroscience summer project.
