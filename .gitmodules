@@ -1,0 +1,3 @@
+[submodule "matnwb"]
+	path = matnwb
+	url = https://github.com/NeurodataWithoutBorders/matnwb.git
