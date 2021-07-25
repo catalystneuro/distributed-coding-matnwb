@@ -52,8 +52,9 @@ nwb_file.stimulus_presentation.set('passive_left_contrast', pass_l);
 nwb_file.stimulus_presentation.set('passive_right_contrast', pass_r);
 nwb_file.stimulus_presentation.set('passive_white_noise', pass_white);
 
-[nwb_file, electrode_groups] = ElectrodeTable(nwb_file);
-%nwb_file = ClustersSpikes(nwb_file, electrode_groups);
+[nwb_file, group_view] = ElectrodeTable(nwb_file);
+nwb_file = ClustersSpikes(nwb_file, group_view);
+nwb_file.processing.set('behavior', behavior_mod);
 
 nwbExport(nwb_file, 'test_one_session.nwb');
 
@@ -370,18 +371,21 @@ function [beep_ts, click_ts, pass_l, pass_r, pass_white] = PassiveStim()
                                 'discrimination task.'});
 end
 
-function [nwb_file, electrode_groups] = ElectrodeTable(nwb_file)
+function [nwb_file, group_view] = ElectrodeTable(nwb_file)
     % add channel information to electrode table
     probe_descriptions = tdfread('nicklab_Subjects_Cori_2016-12-14_001_alf_probes.description.tsv', '\t');
-    electrode_groups = [];
     for p = 1:size(probe_descriptions.description, 1)
-        probe_device = types.core.Device();
+        device_name = num2str(p);
+        probe_device = types.core.Device('description', 'probe device');
         probe_elec_grp = types.core.ElectrodeGroup(...
                                 'description', 'Neuropixels Phase3A opt3', ...
                                 'device', probe_device, ...
                                 'location', 'unknown');
-        electrode_groups = [electrode_groups, probe_elec_grp];
+        group_name = ['Probe', num2str(p-1)];
+        nwb_file.general_extracellular_ephys.set(group_name, probe_elec_grp);
+        nwb_file.general_devices.set(device_name, probe_device);
     end
+
     % add channel information to electrode table
     insertion_df = tdfread('nicklab_Subjects_Cori_2016-12-14_001_alf_probes.insertion.tsv', '\t');
     insertion_df.group_name = (0:length(insertion_df.entry_point_rl)-1)';
@@ -390,12 +394,10 @@ function [nwb_file, electrode_groups] = ElectrodeTable(nwb_file)
     channel_probes = readNPY('nicklab~Subjects~Cori~2016-12-14~001~alf~channels.probe.npy');
     channel_probes = ceil(channel_probes(:));
 
-    columns = {'group_name', 'entry_point_rl', 'entry_point_ap', ...
-               'vertical_angle', 'horizontal_angle', 'axial_angle', ...
-               'distance_advanced'};
     channel_table = struct('group_name', channel_probes);
-
-    channel_table = join(struct2table(channel_table), struct2table(insertion_df), 'Keys', 'group_name');
+    channel_table = join(struct2table(channel_table), ...
+                         struct2table(insertion_df), ...
+                         'Keys', 'group_name');
 
     entry_point_rl = channel_table.entry_point_rl;
     entry_point_ap = channel_table.entry_point_ap;
@@ -405,32 +407,39 @@ function [nwb_file, electrode_groups] = ElectrodeTable(nwb_file)
     distance_advanced = channel_table.distance_advanced;
 
     locations = channel_brain.allen_ontology;
-    groups = electrode_groups(channel_probes + 1)';
-
+    n_rows = length(locations);
     channel_sitepos = readNPY('nicklab~Subjects~Cori~2016-12-14~001~alf~channels.sitePositions.npy');
 
     columns = {'x', 'y', 'z', 'imp', 'location', 'filtering', ...
                'site_id', 'site_position', 'ccf_ap', 'ccf_dv', 'ccf_lr', ...
                'entry_point_rl', 'entry_point_ap', 'vertical_angle', ...
-               'horizontal_angle', 'axial_angle', 'distance_advanced'};
+               'horizontal_angle', 'axial_angle', 'distance_advanced', 'electrode_group'};
 
-    x = nan(size(groups, 1), 1);
-    y = nan(size(groups, 1), 1);
-    z = nan(size(groups, 1), 1);
-    imp = nan(size(groups, 1), 1);
-    filtering = repmat('none', size(groups, 1), 1);
+    x = nan(n_rows, 1);
+    y = nan(n_rows, 1);
+    z = nan(n_rows, 1);
+    imp = nan(n_rows, 1);
+    filtering = repmat('none',n_rows, 1);
+
+    % prepare electrode group view
+    group_view = [];
+    for i = 1:n_rows
+        ith_group = types.untyped.ObjectView( ...
+                ['/general/extracellular_ephys/' 'Probe' num2str(channel_probes(i))]);
+        group_view = [group_view, ith_group];
+    end
 
     electrode_tbl = table(x, y, z, imp, locations, filtering, ...
                channel_site, channel_sitepos, channel_brain.ccf_ap, ...
                channel_brain.ccf_dv, channel_brain.ccf_lr, ...
                entry_point_rl, entry_point_ap, vertical_angle, ...
-               horizontal_angle, axial_angle, distance_advanced, ...
+               horizontal_angle, axial_angle, distance_advanced, group_view', ...
                'VariableNames', columns);
     electrode_tbl = util.table2nwb(electrode_tbl, 'all electrodes');
     nwb_file.general_extracellular_ephys_electrodes = electrode_tbl;
 end
 
-function nwb_file = ClustersSpikes(nwb_file, electrode_groups)
+function nwb_file = ClustersSpikes(nwb_file, group_view)
     % add clusters and spikes
     cluster_probe = readNPY('nicklab~Subjects~Cori~2016-12-14~001~alf~clusters.probes.npy');
     cluster_probe = ceil(cluster_probe(:));
@@ -448,8 +457,7 @@ function nwb_file = ClustersSpikes(nwb_file, electrode_groups)
     spike_depths = readNPY('nicklab~Subjects~Cori~2016-12-14~001~alf~spikes.depths.npy');
 
     cluster_info = unique((spike_to_clusters));
-
-    clusters = cell(1, size(cluster_info, 1));
+    clusters = cell(1, length(cluster_info));
 
     for i = 1:size(spike_to_clusters, 1)
         s = ceil(spike_to_clusters(i));
@@ -459,68 +467,72 @@ function nwb_file = ClustersSpikes(nwb_file, electrode_groups)
         clusters{s+1}{end+1} = i;
     end
 
-    times = cell(size(clusters', 1), 1);
-    annotations = cell(size(clusters', 1), 1);
-    channel = cell(size(clusters', 1), 1);
-    duration = cell(size(clusters', 1), 1);
-    elec_grps = cell(size(clusters', 1), 1);
-    amps = cell(size(clusters', 1), 1);
-    depths = cell(size(clusters', 1), 1);
-    for i = 1:size(clusters', 1)
-        times{i} = spike_times(cell2mat(clusters{i}'));
-        annotations{i} = ceil(phy_annotations(i));
-        channel{i} = ceil(cluster_channel(i));
-        duration{i} = ceil(waveform_duration(i));
-        elec_grps{i} = electrode_groups(cluster_probe(i)+1);
-        amps{i} = spike_amps(i);
-        depths{i} = spike_depths(i);
+    times = cell(1, size(clusters', 1));
+    annotations = cell(1, size(clusters', 1));
+    channel = cell(1, size(clusters', 1));
+    duration = cell(1, size(clusters', 1));
+    amps = cell(1, size(clusters', 1));
+    depths = cell(1, size(clusters', 1));
+
+    for i = 1:length(clusters)
+        times{i} = spike_times(cell2mat(clusters{i}))';
+        annotations{i} = ceil(phy_annotations(i))';
+        channel{i} = ceil(cluster_channel(i))';
+        duration{i} = ceil(waveform_duration(i))';
+        amps{i} = spike_amps(i)';
+        depths{i} = spike_depths(i)';
     end
 
-    id = types.hdmf_common.ElementIdentifiers('data', int64(0:length(clusters)-1));
-    columns = {'spike_times', 'phy_annotations', 'peak_channel', ...
-           'waveform_duration', 'cluster_depths', 'sampling_rate', ...
-           'spike_amps', 'spike_depths'};
+    id = types.hdmf_common.ElementIdentifiers('data', int64(0:length(times)-1));
+    columns = {'spike_times', 'phyannotations', 'peakchannel', ...
+           'waveformduration', 'clusterdepths', 'samplingrate', ...
+           'spikeamps', 'spikedepths'};
+    electrodes_object_view = types.untyped.ObjectView( ...
+        '/general/extracellular_ephys/electrodes');
 
     [spike_times_vector, spike_times_index] = util.create_indexed_column( ...
-                                            times, '/units/spike_times', ...
-                                            'description', 'spikes data');
+                                        times, '/units/spike_times');
+    spike_times_index.description = 'spikes index';
+
     nwb_file.units = types.core.Units( ...
         'colnames', columns, ...
         'description', 'Units table', ...
         'id', id, ...
         'spike_times', spike_times_vector, ...
         'spike_times_index', spike_times_index, ...
-        'electrode_group', types.hdmf_common.VectorData('data', elec_grps, ...
-                        'description',{'Electrode group'}), ...
-        'electrodes', types.hdmf_common.DynamicTableRegion('data', waveform_chans), ...
+        'electrode_group', types.hdmf_common.VectorData('data', group_view', ...
+                    'description',{'Electrode group'}), ...
+        'electrodes', types.hdmf_common.DynamicTableRegion('table', electrodes_object_view, ...
+                     'description', 'electrodes', ...
+                     'data', waveform_chans), ...
         'waveform_mean', types.hdmf_common.VectorData('data', waveform, ...
                         'description',{'Waveform mean'}), ...
-        'peak_channel', types.hdmf_common.VectorData('data', channel, ...
+        'peakchannel', types.hdmf_common.VectorData('data', cell2mat(channel), ...
                         'description',{'The channel number of the location of '
                         'the peak of the cluster waveform.'}), ...
-        'waveform_duration', types.hdmf_common.VectorData('data', duration, ...
+        'waveformduration', types.hdmf_common.VectorData('data', cell2mat(duration), ...
                         'description',{'The trough-to-peak duration of '
                         'the waveform on the peak channel'}), ...
-        'phy_annotations', types.hdmf_common.VectorData('data', annotations, ...
+        'phyannotations', types.hdmf_common.VectorData('data', cell2mat(annotations), ...
                 'description',{'0 = noise (these are already excluded and dont appear in this dataset '
                 'at all); 1 = MUA (i.e. presumed to contain spikes from multiple neurons; '
                 'these are not analyzed in any analyses in the paper); 2 = Good (manually '
                 'labeled); 3 = Unsorted. In this dataset Good was applied in a few but '
                 'not all datasets to included neurons, so in general the neurons with '
                 '_phy_annotation>=2 are the ones that should be included.'}), ...
-        'cluster_depths', types.hdmf_common.VectorData('data', cluster_depths, ...
+        'clusterdepths', types.hdmf_common.VectorData('data', cluster_depths', ...
                     'description',{'The position of the center of mass of the template of the cluster, '
                     'relative to the probe. The deepest channel on the probe is depth=0, '
                     'and the most superficial is depth=3820. Units: µm'}), ...
-        'sampling_rate', types.hdmf_common.VectorData('data', ...
-                        repmat(30000.0, length(cluster_info), 1), ...
+        'samplingrate', types.hdmf_common.VectorData('data', ...
+                        repmat(30000.0, 1, length(cluster_info)), ...
                         'description',{'Sampling rate in Hz'}), ...
-        'spike_amps', types.hdmf_common.VectorData('data', amps, ...
+        'spikeamps', types.hdmf_common.VectorData('data', cell2mat(amps), ...
                         'description',{'The peak-to-trough amplitude, '
                                         'obtained from the template and '
                                         'template-scaling amplitude returned by Kilosort '
                                         '(not from the raw data).'}), ...
-        'spike_depths', types.hdmf_common.VectorData('data', depths, ...
+        'spikedepths', types.hdmf_common.VectorData('data', cell2mat(depths), ...
                         'description',{'The position of the center of mass '
                             'of the spike on the probe, '
                             'determined from the principal component features '
