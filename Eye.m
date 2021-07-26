@@ -16,7 +16,7 @@ function behavior_mod = Eye(behavior_mod, ...
         xy_description char = 'Time series denoting eye xy positions'
         xy_comments char = 'No comments'
     end
-    % Read .npy files for eye timestamps, eye area and eye xy positions
+    %% Read .npy files for eye timestamps, eye area and eye xy positions
     eye_timestamps = readNPY(f_eye_timestamps);
     eye_area = readNPY(f_eye_area);
     eye_xy_pos = readNPY(f_eye_xy_pos);
@@ -32,7 +32,7 @@ function behavior_mod = Eye(behavior_mod, ...
                 'data_unit', xy_data_unit, ...
                 'description', xy_description, ...
                 'comments', xy_comments);
-    % add both TimeSeries objects to PupilTracking and add to behavior
+    %% add both TimeSeries objects to PupilTracking and add to behavior
     % module
     pupil_track = types.core.PupilTracking('timeseries', [pupil, eye_xy]);
     behavior_mod.nwbdatainterface.set(...

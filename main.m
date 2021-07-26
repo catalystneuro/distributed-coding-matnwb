@@ -28,6 +28,7 @@ for sess = 1:size(meta_table, 1)
                  % initialize nwb file object
                  nwb_file = initialize_nwb_object(date, session_id);
                  nwb_file = populate(nwb_file, fields);
+                 nwbExport(nwb_file, 'single_session.nwb');
                  found = 1;
             end
         end
@@ -47,14 +48,16 @@ end
 
 function nwb_file = populate(nwb_file, fields)
     % create processing module
-     behavior_mod = types.core.ProcessingModule('description', 'behavior module');
-     % Eye
-     f_eye_timestamps = proper_filename(fields(1:6), '~eye.timestamps.npy');
+     behavior_mod = types.core.ProcessingModule(...
+                                    'description', 'behavior module');
+     %% Converting Eye data
+     f_eye_timestamps = proper_filename(fields(1:6), ...
+                                            '~eye.timestamps.npy');
      f_eye_area = proper_filename(fields(1:6), '~eye.area.npy');
      f_eye_xy_pos = proper_filename(fields(1:6), '~eye.xyPos.npy');
      ts_data_unit = 'arb. unit';
      ts_description = {'Features extracted from the '
-                         'video of the right eye.'};
+                       'video of the right eye.'};
      ts_comments = {'The area of the pupil extracted '
          'with DeepLabCut. Note that '
          'it is relatively very small during the discrimination task '
@@ -71,8 +74,38 @@ function nwb_file = populate(nwb_file, fields)
                      'could be used to detect saccades or '
                      'other changes in eye position.'};
      behavior_mod = Eye(behavior_mod, f_eye_timestamps, f_eye_area, ...
-                        f_eye_xy_pos, ts_data_unit, ts_description, ts_comments, ...
-                        xy_data_unit, xy_description, xy_comments);
+               f_eye_xy_pos, ts_data_unit, ts_description, ts_comments, ...
+               xy_data_unit, xy_description, xy_comments);
+
+     %% Convert Face energy data
+     f_face_motion_energy = proper_filename(fields(1:6), ...
+                                    '~face.motionEnergy.npy');
+     f_face_timestamps = proper_filename(fields(1:6), ...
+                                    '~face.timestamps.npy');
+     data_unit = 'arb. unit';
+     description = {'Features extracted from the video of the '
+                    'frontal aspect of the subject, including the '
+                    'subject face and forearms.'};
+     comments = {'The integrated motion energy across the whole frame'
+                 ', i.e. sum( (thisFrame-lastFrame)^2 ). '
+                 'Some smoothing is applied before this operation.'};
+     behavior_mod = Face(behavior_mod, ...
+                         f_face_motion_energy, f_face_timestamps, ...
+                         data_unit, description, comments);
+
+     %% Convert Lick piezo data and add as NWB.acquisition
+     f_lp_raw = proper_filename(fields(1:6), '~lickPiezo.raw.npy');
+     f_lp_ts = proper_filename(fields(1:6), '~lickPiezo.timestamps.npy');
+     data_unit = 'V';
+     description = {'Voltage values from a thin-film piezo '
+                    'connected to the lick spout, so that values '
+                    'are proportional to deflection '
+                    'of the spout and licks can be detected '
+                    'as peaks of the signal.'};
+     lp_timeseries = LickPiezo(f_lp_raw, f_lp_ts, data_unit, description);
+     nwb_file.acquisition.set('LickPiezo', lp_timeseries);
+
+     %%
      nwb_file.processing.set('behavior', behavior_mod);
 end
 
