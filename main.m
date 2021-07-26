@@ -118,6 +118,40 @@ function nwb_file = populate(nwb_file, fields)
      spont_ti = Spontaneous(f_spot_int);
      nwb_file.intervals.set('spontaneous', spont_ti);
 
+     %% Wheel times
+     f_whl_pos = proper_filename(fields(1:6), '~wheel.position.npy');
+     f_whl_ts = proper_filename(fields(1:6), '~wheel.timestamps.npy');
+     data_unit = 'mm';
+     data_conversion = 0.135;
+     description = {'The position reading of the rotary encoder attached to '
+                    'the rubber wheel that the mouse pushes left and right '
+                    'with his forelimbs.'};
+     comments = {'The wheel has radius 31 mm and 1440 ticks per revolution, '
+                 'so multiply by 2*pi*r/tpr=0.135 to convert to millimeters. '
+                 'Positive velocity (increasing numbers) correspond to clockwise '
+                 'turns (if looking at the wheel from behind the mouse), i.e. '
+                 'turns that are in the correct direction for stimuli presented '
+                 'to the left. Likewise negative velocity corresponds to right choices.'};
+     wheel_ts = Wheel(f_whl_pos, f_whl_ts, data_unit, data_conversion, ...
+                      description, comments);
+     nwb_file.acquisition.set('WheelTimes', wheel_ts);
+
+     %% Wheel moves
+     f_whl_moves_type = proper_filename(fields(1:6), '~wheelMoves.type.npy');
+     f_whl_moves_int = proper_filename(fields(1:6), '~wheelMoves.intervals.npy');
+     description = {'Detected wheel movements.'};
+     comments = {'0 for flinches or otherwise unclassified movements, '
+                 '1 for left/clockwise turns, 2 for right/counter-clockwise '
+                 'turns (where again "left" means "would be the correct '
+                 'direction for a stimulus presented on the left). A detected '
+                 'movement is counted as left or right only if it was '
+                 'sufficient amplitude that it would have registered a correct '
+                 'response (and possibly did), within a minimum amount of time '
+                 'from the start of the movement. Movements failing those '
+                 'criteria are flinch/unclassified type.'};
+     behavior_mod = WheelMoves(behavior_mod, f_whl_moves_type, f_whl_moves_int, ...
+                               description, comments);
+
      %% Convert Trials data and create NWB TrialTable
      f_included = proper_filename(fields(1:6), ...
                             '~trials.included.npy');
