@@ -246,12 +246,66 @@ function nwb_file = populate(nwb_file, fields)
      channel_probes = proper_filename(fields(1:6), '~channels.probe.npy');
      channel_sitepos = proper_filename(fields(1:6), '~channels.sitePositions.npy');
 
-     nwb_file = ElectrodeTable(nwb_file, ...
+     [nwb_file, group_view] = ElectrodeTable(nwb_file, ...
                             probe_descriptions, insertion_df, ...
                             channel_site, channel_brain,...
                             channel_probes, channel_sitepos, ...
                             device_desc, probe_elec_desc, ...
                             probe_location);
+     %% Create Units table for clusters and spikes data
+     cluster_probe = proper_filename(fields(1:6), '~clusters.probes.npy');
+     cluster_channel = proper_filename(fields(1:6), '~clusters.peakChannel.npy');
+     cluster_depths = proper_filename(fields(1:6), '~clusters.depths.npy');
+     phy_annotations = proper_filename(fields(1:6), '~clusters._phy_annotation.npy');
+     waveform_chans = proper_filename(fields(1:6), '~clusters.templateWaveformChans.npy');
+     waveform = proper_filename(fields(1:6), '~clusters.templateWaveforms.npy');
+     waveform_duration = proper_filename(fields(1:6), '~clusters.waveformDuration.npy');
+     spike_to_clusters = proper_filename(fields(1:6), '~spikes.clusters.npy');
+     spike_times = proper_filename(fields(1:6), '~spikes.times.npy');
+     spike_amps = proper_filename(fields(1:6), '~spikes.amps.npy');
+     spike_depths = proper_filename(fields(1:6), '~spikes.depths.npy');
+     description = 'Units table';
+     electrode_group_desc = 'Electrode group';
+     electrodes_desc = 'Electrodes';
+     waveform_mean_desc = 'Waveform mean';
+     peakchannel_desc = {'The channel number of the location of '
+                        'the peak of the cluster waveform.'};
+     waveformduration_desc = {'The trough-to-peak duration of '
+                              'the waveform on the peak channel'};
+     phyannotations_desc = {'0 = noise (these are already excluded and '
+                'dont appear in this dataset '
+                'at all); 1 = MUA (i.e. presumed to contain '
+                'spikes from multiple neurons; '
+                'these are not analyzed in any analyses in the paper)'
+                '; 2 = Good (manually '
+                'labeled); 3 = Unsorted. In this '
+                'dataset Good was applied in a few but '
+                'not all datasets to included neurons, '
+                'so in general the neurons with '
+                '_phy_annotation>=2 are the ones that should be included.'};
+     clusterdepths_desc = {'The position of the center of mass of the template of the cluster, '
+                    'relative to the probe. The deepest channel on the probe is depth=0, '
+                    'and the most superficial is depth=3820. Units: µm'};
+     samplingrate_desc = {'Sampling rate in Hz'};
+     spikeamps_desc = {'The peak-to-trough amplitude, '
+                    'obtained from the template and '
+                    'template-scaling amplitude returned by Kilosort '
+                    '(not from the raw data).'};
+     spikedepths_desc = {'The position of the center of mass '
+                        'of the spike on the probe, '
+                        'determined from the principal component features '
+                        'returned by Kilosort. '
+                        'The deepest channel on the probe is depth=0, '
+                        'and the most superficial is depth=3820.'};
+     nwb_file = ClustersSpikes(nwb_file, group_view, ...
+                    cluster_probe, cluster_channel, cluster_depths, ...
+                    phy_annotations, waveform_chans, waveform, ...
+                    waveform_duration, spike_to_clusters, ...
+                    spike_times, spike_amps, spike_depths, ...
+                    description, electrode_group_desc, electrodes_desc, ...
+                    waveform_mean_desc, peakchannel_desc, waveformduration_desc, ...
+                    phyannotations_desc, clusterdepths_desc, ...
+                    samplingrate_desc, spikeamps_desc, spikedepths_desc);
      %%
      nwb_file.processing.set('behavior', behavior_mod);
 
