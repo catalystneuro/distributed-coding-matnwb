@@ -28,7 +28,7 @@ for sess = 1:size(meta_table, 1)
                  % initialize nwb file object
                  nwb_file = initialize_nwb_object(date, session_id);
                  nwb_file = populate(nwb_file, fields);
-                 nwbExport(nwb_file, 'single_session.nwb');
+                 %nwbExport(nwb_file, 'single_session.nwb');
                  found = 1;
             end
         end
@@ -104,6 +104,93 @@ function nwb_file = populate(nwb_file, fields)
                     'as peaks of the signal.'};
      lp_timeseries = LickPiezo(f_lp_raw, f_lp_ts, data_unit, description);
      nwb_file.acquisition.set('LickPiezo', lp_timeseries);
+
+     %% Convert Trials data and create NWB TrialTable
+     f_included = proper_filename(fields(1:6), ...
+                            '~trials.included.npy');
+     f_fb_type = proper_filename(fields(1:6), ...
+                            '~trials.feedbackType.npy');
+     f_fb_time = proper_filename(fields(1:6), ...
+                            '~trials.feedback_times.npy');
+     f_go_cue = proper_filename(fields(1:6), ...
+                            '~trials.goCue_times.npy');
+     f_trial_intervals = proper_filename(fields(1:6), ...
+                            '~trials.intervals.npy');
+     f_rep_num = proper_filename(fields(1:6), ...
+                            '~trials.repNum.npy');
+     f_response_choice = proper_filename(fields(1:6), ...
+                            '~trials.response_choice.npy');
+     f_response_times = proper_filename(fields(1:6), ...
+                            '~trials.response_times.npy');
+     f_visual_left = proper_filename(fields(1:6), ...
+                            '~trials.visualStim_contrastLeft.npy');
+     f_visual_right = proper_filename(fields(1:6), ...
+                            '~trials.visualStim_contrastRight.npy');
+     f_visual_times = proper_filename(fields(1:6), ...
+                            '~trials.visualStim_times.npy');
+
+     description = 'trial table for behavioral trials';
+     included_desc = {'Importantly, while this '
+                    'variable gives inclusion criteria according '
+                    'to the definition of disengagement '
+                    '(see manuscript Methods), it does '
+                    'not give inclusion criteria based on the '
+                    'time of response, as used '
+                    'for most analyses in the paper.'};
+     go_cue_desc = {'The goCue is referred to as the '
+                    'auditory tone cue in the manuscript.'};
+     visual_stimulus_time_desc = {'Times are relative to the same time'
+                              'base as every other time in the '
+                              'dataset, not to the start of the trial'};
+     visual_stimulus_left_desc = {'Proportion contrast. A value of 0.5 '
+                               'means 50% contrast. 0 is a blank '
+                               'screen: no change to any pixel values on '
+                               'that side (completely undetectable).'};
+     visual_stimulus_right_desc = {'Times are relative to the same '
+                          'time base as every other time in the dataset, '
+                          'not to the start of the trial.'};
+     response_time_desc = {'Enumerated type. The response registered '
+                    'at the end of the trial, '
+                    'which determines the feedback according to the '
+                    'contrast condition. Note that in a small percentage '
+                    'of cases (~4%, see manuscript Methods) '
+                    'the initial wheel turn was in the opposite direction.'
+                    '-1 for Right choice (i.e. correct when stimuli are '
+                    'on the right); +1 for left choice; '
+                    '0 for Nogo choice.'};
+     response_choice_desc = {'Enumerated type. The response '
+                        'registered at the end of the trial, '
+                        'which determines the feedback '
+                        'according to the contrast condition. '
+                        'Note that in a small percentage of cases '
+                        '(~4%, see manuscript Methods) '
+                        'the initial wheel turn was in the opposite '
+                        'direction. -1 for Right '
+                        'choice (i.e. correct when stimuli are on the '
+                        'right); +1 for left '
+                        'choice; 0 for Nogo choice.'};
+      feedback_time_desc = {'Times are relative to the same time '
+                       'base as every other time in the dataset, '
+                       'not to the start of the trial.'};
+      feedback_type_desc = {'Enumerated type. -1 for negative '
+                       'feedback (white noise burst); +1 for '
+                       'positive feedback (water reward delivery).'};
+      rep_num_desc ={'Trials are repeated if they are "easy" '
+            'trials (high contrast stimuli with large difference '
+            'between the two sides, or the blank screen condition) and '
+            'this keeps track of how many times the current '
+            'trials condition has been repeated.'};
+
+     trials = TrialTable(f_included, f_fb_type, f_fb_time, f_go_cue, ...
+            f_trial_intervals, f_rep_num, f_response_choice, ...
+            f_response_times, f_visual_left, f_visual_right, ...
+            f_visual_times, description, ...
+            included_desc, go_cue_desc, visual_stimulus_time_desc, ...
+            visual_stimulus_left_desc, visual_stimulus_right_desc, ...
+            response_time_desc, response_choice_desc, ...
+            feedback_time_desc, feedback_type_desc, ...
+            rep_num_desc);
+     nwb_file.intervals_trials = trials;
 
      %%
      nwb_file.processing.set('behavior', behavior_mod);
