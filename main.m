@@ -192,8 +192,69 @@ function nwb_file = populate(nwb_file, fields)
             rep_num_desc);
      nwb_file.intervals_trials = trials;
 
+     %% Convert Passive stimulus data
+     % passive beeps
+     pass_beeps = proper_filename(fields(1:6), '~passiveBeeps.times.npy');
+     pb_data_unit = 'Unknown';
+     pb_description = {'Auditory tones of the same frequency as '
+                       'the auditory tone cue in the task'};
+     % passive valve clicks
+     pass_clicks = proper_filename(fields(1:6), '~passiveValveClick.times.npy');
+     pc_data_unit = 'Unknown';
+     pc_description = {'Opening of the reward valve, but with a clamp in place '
+             'such that no water flows. Therefore the auditory sound of '
+             'the valve is heard, but no water reward is obtained.'};
+
+     % passive visual times
+     pass_vis = proper_filename(fields(1:6), '~passiveVisual.times.npy');
+     pass_vis_left = proper_filename(fields(1:6), '~passiveVisual.contrastLeft.npy');
+     pass_vis_right = proper_filename(fields(1:6), '~passiveVisual.contrastRight.npy');
+     pvl_data_unit = 'proportion contrast';
+     pvl_description = {'Gratings of the same size, spatial freq, position, etc '
+                       'as during the discrimination task.'};
+     pvr_data_unit = 'proportion contrast';
+     pvr_description = {'Gratings of the same size, spatial freq, position, etc '
+                       'as during the discrimination task.'};
+     % passive valve clicks
+     pass_noise = proper_filename(fields(1:6), '~passiveWhiteNoise.times.npy');
+     pvc_data_unit = 'Unknown';
+     pvc_description = {'The sound that accompanies an incorrect response '
+                        ' during the discrimination task.'};
+     [beep_ts, click_ts, pass_l, pass_r, pass_white] = PassiveStim(...
+              pass_beeps, pass_clicks, pass_vis, pass_vis_left, ...
+                  pass_vis_right, pass_noise, ...
+                  pb_data_unit, pb_description, ...
+                  pc_data_unit, pc_description, ...
+                  pvl_data_unit, pvl_description, ...
+                  pvr_data_unit, pvr_description, ...
+                  pvc_data_unit, pvc_description);
+     nwb_file.stimulus_presentation.set('passive_beeps', beep_ts);
+     nwb_file.stimulus_presentation.set('passive_click_times', click_ts);
+     nwb_file.stimulus_presentation.set('passive_left_contrast', pass_l);
+     nwb_file.stimulus_presentation.set('passive_right_contrast', pass_r);
+     nwb_file.stimulus_presentation.set('passive_white_noise', pass_white);
+
+     %% Create Electrode table to add neural data
+     % add channel information to electrode table
+     probe_descriptions = proper_filename(fields(1:6), '~probes.description.tsv');
+     device_desc = 'Probe device';
+     probe_elec_desc = 'Neuropixels Phase3A opt3';
+     probe_location = 'Unknown';
+     insertion_df = proper_filename(fields(1:6), '~probes.insertion.tsv');
+     channel_site = proper_filename(fields(1:6), '~channels.site.npy');
+     channel_brain = proper_filename(fields(1:6), '~channels.brainLocation.tsv');
+     channel_probes = proper_filename(fields(1:6), '~channels.probe.npy');
+     channel_sitepos = proper_filename(fields(1:6), '~channels.sitePositions.npy');
+
+     nwb_file = ElectrodeTable(nwb_file, ...
+                            probe_descriptions, insertion_df, ...
+                            channel_site, channel_brain,...
+                            channel_probes, channel_sitepos, ...
+                            device_desc, probe_elec_desc, ...
+                            probe_location);
      %%
      nwb_file.processing.set('behavior', behavior_mod);
+
 end
 
 function nwb_file = initialize_nwb_object(date, session_id)
