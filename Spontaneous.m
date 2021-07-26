@@ -1,9 +1,14 @@
+% function add spontaneous intervals to acquisition
 function spont_ti = Spontaneous(f_spot_int)
-    % add spontaneous intervals to acquisition
+
+    arguments
+        f_spot_int (1, :) string
+    end
     spont = readNPY(f_spot_int);
     start_time = spont(:, 1);
     stop_time = spont(:, 2);
 
+    %% Create TimeIntervals object
     spont_ti = types.core.TimeIntervals(...
                 'colnames', {'start_time', 'stop_time'}, ...
                 'id', types.hdmf_common.ElementIdentifiers('data', 0:length(spont(:, 1))-1), ...

@@ -105,6 +105,19 @@ function nwb_file = populate(nwb_file, fields)
      lp_timeseries = LickPiezo(f_lp_raw, f_lp_ts, data_unit, description);
      nwb_file.acquisition.set('LickPiezo', lp_timeseries);
 
+     %% Convert Lick times data
+     f_lk_ts = proper_filename(fields(1:6), '~licks.times.npy');
+     data_unit = 'Unknown';
+     description = {'Extracted times of licks, '
+                    'from the lickPiezo signal.'};
+     behavior_mod = LickTimes(behavior_mod, f_lk_ts, data_unit, ...
+                              description);
+
+     %% Convert spontaneous intervals
+     f_spot_int = proper_filename(fields(1:6), '~spontaneous.intervals.npy');
+     spont_ti = Spontaneous(f_spot_int);
+     nwb_file.intervals.set('spontaneous', spont_ti);
+
      %% Convert Trials data and create NWB TrialTable
      f_included = proper_filename(fields(1:6), ...
                             '~trials.included.npy');
@@ -235,7 +248,6 @@ function nwb_file = populate(nwb_file, fields)
      nwb_file.stimulus_presentation.set('passive_white_noise', pass_white);
 
      %% Create Electrode table to add neural data
-     % add channel information to electrode table
      probe_descriptions = proper_filename(fields(1:6), '~probes.description.tsv');
      device_desc = 'Probe device';
      probe_elec_desc = 'Neuropixels Phase3A opt3';
