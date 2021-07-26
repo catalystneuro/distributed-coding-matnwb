@@ -152,6 +152,20 @@ function nwb_file = populate(nwb_file, fields)
      behavior_mod = WheelMoves(behavior_mod, f_whl_moves_type, f_whl_moves_int, ...
                                description, comments);
 
+     %% Sparse Noise
+     proper_filename(fields(1:6), '~sparseNoise.times.npy');
+     sp_noise_pos = proper_filename(fields(1:6), '~sparseNoise.positions.npy');
+     sp_noise_t = proper_filename(fields(1:6), '~sparseNoise.times.npy');
+     data_unit = 'degrees visual angle';
+     description = {'White squares shown on the screen with randomized '
+                    'positions and timing - see manuscript Methods.'};
+     comments = {'The altitude (first column) and azimuth (second column) '
+                 'of the square.'};
+     sp_noise = SparseNoise(sp_noise_pos, sp_noise_t, data_unit, ...
+                            description, comments);
+     nwb_file.stimulus_presentation.set(...
+         'receptive_field_mapping_sparse_noise', sp_noise);
+
      %% Convert Trials data and create NWB TrialTable
      f_included = proper_filename(fields(1:6), ...
                             '~trials.included.npy');
