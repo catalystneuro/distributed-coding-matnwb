@@ -29,22 +29,41 @@ nwb_file = NwbFile(...
 
 % create processing module
 behavior_mod = types.core.ProcessingModule('description', 'behavior module');
+
+[pupil_tracking, eye_tracking] = Eye();
+behavior_mod.nwbdatainterface.set(...
+                       'PupilTracking', pupil_tracking);
+behavior_mod.nwbdatainterface.set(...
+                       'EyeTracking', eye_tracking);
 nwb_file.processing.set('behavior', behavior_mod);
 
-behavior_mod = Eye(behavior_mod);
-behavior_mod = Face(behavior_mod);
+face_interface = Face();
+behavior_mod.nwbdatainterface.set(...
+                       'BehavioralTimeSeries', face_interface);
+
 lp_ts = LickPiezo();
 nwb_file.acquisition.set('LickPiezo', lp_ts);
-behavior_mod = LickTimes(behavior_mod);
+
+lick_behavior = LickTimes();
+behavior_mod.nwbdatainterface.set(...
+                    'BehavioralEvents', lick_behavior);
+
 spont_ti = Spontaneous();
 nwb_file.intervals.set('spontaneous', spont_ti);
+
 wheel_ts = Wheel();
 nwb_file.acquisition.set('WheelTimes', wheel_ts);
-behavior_mod = WheelMoves(behavior_mod);
+
+wheel_moves_beh = WheelMoves();
+behavior_mod.nwbdatainterface.set(...
+                    'BehavioralEpochs', wheel_moves_beh);
+
 trials = TrialTable();
 nwb_file.intervals_trials = trials;
+
 sp_noise = SparseNoise();
 nwb_file.stimulus_presentation.set('receptive_field_mapping_sparse_noise', sp_noise);
+
 [beep_ts, click_ts, pass_l, pass_r, pass_white] = PassiveStim();
 nwb_file.stimulus_presentation.set('passive_beeps', beep_ts);
 nwb_file.stimulus_presentation.set('passive_click_times', click_ts);
@@ -54,16 +73,15 @@ nwb_file.stimulus_presentation.set('passive_white_noise', pass_white);
 
 [nwb_file, group_view] = ElectrodeTable(nwb_file);
 nwb_file = ClustersSpikes(nwb_file, group_view);
-nwb_file.processing.set('behavior', behavior_mod);
 
-nwbExport(nwb_file, 'test_one_session.nwb');
+nwbExport(nwb_file, 'one_session.nwb');
 
 function rate = Rate(timestamps)
     % calculate rate
     rate = (timestamps(2, 2) - timestamps(1, 2)) / (timestamps(2, 1));
 end
 
-function behavior_mod = Eye(behavior_mod)
+function [pupil_tracking, eye_tracking] = Eye()
     % function to add eye position and pupil tracking to processing module
 
     eye_timestamps = readNPY('nicklab_Subjects_Hench_2017-06-15_001_alf_eye.timestamps.npy');
@@ -83,7 +101,7 @@ function behavior_mod = Eye(behavior_mod)
                  'brighter overall luminance levels lead to relatively '
                  'constricted pupils.'});
 
-    eye_xy = types.core.TimeSeries('timestamps',eye_timestamps(:, 2), ...
+    eye_xy = types.core.SpatialSeries('timestamps',eye_timestamps(:, 2), ...
                 'data', eye_xy_pos, ...
                 'data_unit', 'arb. unit', ...
                 'description', {'Features extracted from the video '
@@ -93,13 +111,11 @@ function behavior_mod = Eye(behavior_mod)
                              'to degrees visual angle, but '
                              'could be used to detect saccades or '
                              'other changes in eye position.'});
-    pupil_track = types.core.PupilTracking('timeseries', [pupil, eye_xy]);
-    behavior_mod.nwbdatainterface.set(...
-                    'PupilTracking', pupil_track);
-
+    pupil_tracking = types.core.PupilTracking('TimeSeries', pupil);
+    eye_tracking = types.core.EyeTracking('SpatialSeries', eye_xy);
 end
 
-function behavior_mod = Face(behavior_mod)
+function face_interface = Face()
     % Add face energy behavior data to behavior processing module
     face_motion_energy = readNPY('nicklab_Subjects_Hench_2017-06-15_001_alf_face.motionEnergy.npy');
     face_timestamps = readNPY('nicklab_Subjects_Hench_2017-06-15_001_alf_face.timestamps.npy');
@@ -115,9 +131,7 @@ function behavior_mod = Face(behavior_mod)
         'comments', {'The integrated motion energy across the whole frame'
                      ', i.e. sum( (thisFrame-lastFrame)^2 ). '
                      'Some smoothing is applied before this operation.'});
-    face_interface = types.core.BehavioralTimeSeries('timeseries', face_energy);
-    behavior_mod.nwbdatainterface.set(...
-                    'BehavioralTimeSeries', face_interface);
+    face_interface = types.core.BehavioralTimeSeries('TimeSeries', face_energy);
 end
 
 function lp_timeseries = LickPiezo()
@@ -135,19 +149,17 @@ function lp_timeseries = LickPiezo()
                     'of the spout and licks can be detected as peaks of the signal.'});
 end
 
-function behavior_mod = LickTimes(behavior_mod)
+function lick_behavior = LickTimes()
     % add lick behavioral events to behavior processing module
     lick_timestamps = readNPY('nicklab_Subjects_Hench_2017-06-15_001_alf_licks.times.npy');
     lick_data = ones(length(lick_timestamps), 1);
     lick_ts = types.core.TimeSeries(...
                     'timestamps', lick_timestamps', ...
                     'data', lick_data, ...
-                    'data_unit', '', ...
+                    'data_unit', 'Unknown', ...
                     'description', {'Extracted times of licks, '
                                     'from the lickPiezo signal.'});
-    lick_behavior = types.core.BehavioralEvents('timeseries', lick_ts);
-    behavior_mod.nwbdatainterface.set(...
-                    'BehavioralEvents', lick_behavior);
+    lick_behavior = types.core.BehavioralEvents('TimeSeries', lick_ts);
 end
 
 function spont_ti = Spontaneous()
@@ -190,7 +202,7 @@ function wheel_ts = Wheel()
                              'to the left. Likewise negative velocity corresponds to right choices.'});
 end
 
-function behavior_mod = WheelMoves(behavior_mod)
+function wheel_moves_beh = WheelMoves()
     % add wheel moves to BehavioralEpochs to behavior module
     wheel_moves_type = readNPY('nicklab_Subjects_Hench_2017-06-15_001_alf_wheelMoves.type.npy');
     wheel_moves_int = readNPY('nicklab_Subjects_Hench_2017-06-15_001_alf_wheelMoves.intervals.npy');
@@ -209,9 +221,7 @@ function behavior_mod = WheelMoves(behavior_mod)
                                      'response (and possibly did), within a minimum amount of time '
                                      'from the start of the movement. Movements failing those '
                                      'criteria are flinch/unclassified type.'});
-    wheel_moves_beh = types.core.BehavioralEpochs('intervalseries', wheel_moves_is);
-    behavior_mod.nwbdatainterface.set(...
-                    'BehavioralEpochs', wheel_moves_beh);
+    wheel_moves_beh = types.core.BehavioralEpochs('IntervalSeries', wheel_moves_is);
 end
 
 function trials = TrialTable()
