@@ -3,9 +3,9 @@ files = dir('allData');
 total_files = length(files);
 
 % Create a sample meta data with sessions information
-subjects = {'Cori', 'Muller', 'Richards'}';
-dates = {'2016-12-14', '2017-01-07', '2017-11-02'}';
-session_ids = {'001', '001', '001'}';
+subjects = {'Cori'}';
+dates = {'2016-12-14'}';
+session_ids = {'001'}';
 meta_table = table(subjects, dates, session_ids);
 
 % loop over iterations
@@ -28,7 +28,7 @@ for sess = 1:size(meta_table, 1)
                  % initialize nwb file object
                  nwb_file = initialize_nwb_object(date, session_id);
                  nwb_file = populate(nwb_file, fields);
-                 %nwbExport(nwb_file, 'single_session.nwb');
+                 nwbExport(nwb_file, 'chakpak.nwb');
                  found = 1;
             end
         end
@@ -47,14 +47,13 @@ function f_name = proper_filename(fields, identifier)
 end
 
 function nwb_file = populate(nwb_file, fields)
-    % create processing module
-     behavior_mod = types.core.ProcessingModule(...
+    % create file prefix string and processing module
+     file_prefix = strcat('allData/', strjoin(fields(1:6)));
+     file_prefix = replace(file_prefix, ' ', '~');
+
+     behavior_module = types.core.ProcessingModule(...
                                     'description', 'behavior module');
      %% Converting Eye data
-     f_eye_timestamps = proper_filename(fields(1:6), ...
-                                            '~eye.timestamps.npy');
-     f_eye_area = proper_filename(fields(1:6), '~eye.area.npy');
-     f_eye_xy_pos = proper_filename(fields(1:6), '~eye.xyPos.npy');
      ts_data_unit = 'arb. unit';
      ts_description = {'Features extracted from the '
                        'video of the right eye.'};
@@ -73,10 +72,13 @@ function nwb_file = populate(nwb_file, fields)
                      'to degrees visual angle, but '
                      'could be used to detect saccades or '
                      'other changes in eye position.'};
-     behavior_mod = nxpl2nwb.Eye(behavior_mod, f_eye_timestamps, f_eye_area, ...
-               f_eye_xy_pos, ts_data_unit, ts_description, ts_comments, ...
-               xy_data_unit, xy_description, xy_comments);
-
+     [pupil_tracking, eye_tracking] = nxpl2nwb.Eye(file_prefix, ...
+                       ts_data_unit, ts_description, ts_comments, ...
+                       xy_data_unit, xy_description, xy_comments);
+     behavior_module.nwbdatainterface.set('PupilTracking', pupil_tracking);
+     behavior_module.nwbdatainterface.set('EyeTracking', eye_tracking);
+     nwb_file.processing.set('behavior', behavior_module);
+     return;
      %% Convert Face energy data
      f_face_motion_energy = proper_filename(fields(1:6), ...
                                     '~face.motionEnergy.npy');
