@@ -117,11 +117,8 @@ function nwb_file = populate(nwb_file, fields)
      spontaneous_timeintervals = nxpl2nwb.Spontaneous(file_prefix, ...
                                                       description);
      nwb_file.intervals.set('spontaneous', spontaneous_timeintervals);
-          return;
 
      %% Wheel times
-     f_whl_pos = proper_filename(fields(1:6), '~wheel.position.npy');
-     f_whl_ts = proper_filename(fields(1:6), '~wheel.timestamps.npy');
      data_unit = 'mm';
      data_conversion = 0.135;
      description = {'The position reading of the rotary encoder attached to '
@@ -133,13 +130,11 @@ function nwb_file = populate(nwb_file, fields)
                  'turns (if looking at the wheel from behind the mouse), i.e. '
                  'turns that are in the correct direction for stimuli presented '
                  'to the left. Likewise negative velocity corresponds to right choices.'};
-     wheel_ts = nxpl2nwb.Wheel(f_whl_pos, f_whl_ts, data_unit, data_conversion, ...
-                      description, comments);
-     nwb_file.acquisition.set('WheelTimes', wheel_ts);
+     wheel_timeseries = nxpl2nwb.Wheel(file_prefix, data_unit, data_conversion, ...
+                               description, comments);
+     nwb_file.acquisition.set('WheelTimes', wheel_timeseries);
 
      %% Wheel moves
-     f_whl_moves_type = proper_filename(fields(1:6), '~wheelMoves.type.npy');
-     f_whl_moves_int = proper_filename(fields(1:6), '~wheelMoves.intervals.npy');
      description = {'Detected wheel movements.'};
      comments = {'0 for flinches or otherwise unclassified movements, '
                  '1 for left/clockwise turns, 2 for right/counter-clockwise '
@@ -150,8 +145,10 @@ function nwb_file = populate(nwb_file, fields)
                  'response (and possibly did), within a minimum amount of time '
                  'from the start of the movement. Movements failing those '
                  'criteria are flinch/unclassified type.'};
-     behavior_mod = nxpl2nwb.WheelMoves(behavior_mod, f_whl_moves_type, f_whl_moves_int, ...
-                               description, comments);
+     wheel_moves_beh = nxpl2nwb.WheelMoves(file_prefix, ...
+                                        description, comments);
+     behavior_module.nwbdatainterface.set(...
+                    'BehavioralEpochs', wheel_moves_beh);
 
      %% Sparse Noise
      proper_filename(fields(1:6), '~sparseNoise.times.npy');

@@ -1,27 +1,24 @@
-% function add wheel moves to BehavioralEpochs to behavior module
-function behavior_mod = WheelMoves(behavior_mod, f_whl_moves_type, ...
-                                   f_whl_moves_int, description, comments)
+% function to convert wheel moves
+function wheel_moves_beh = WheelMoves(file_prefix, description, comments)
 
     arguments
-        behavior_mod {mustBeA(behavior_mod, "types.core.ProcessingModule")}
-        f_whl_moves_type(1, :) string
-        f_whl_moves_int(1, :) string
-        description char = 'No description'
+        file_prefix (1, :) string
+        description char = 'Detected wheel movements'
         comments char = 'No comments'
     end
     %% read files
-    wheel_moves_type = readNPY(f_whl_moves_type);
-    wheel_moves_int = readNPY(f_whl_moves_int);
-    wheel_moves_int = ceil(wheel_moves_int(:));
+    fname_wheel_movetype = strcat(file_prefix, 'wheelMoves.type.npy');
+    fname_wheel_moveintervals = strcat(file_prefix, ...
+                                            'wheelMoves.intervals.npy');
+    wheel_moves_type = readNPY(fname_wheel_movetype);
+    wheel_moves_intervals = readNPY(fname_wheel_moveintervals);
+    wheel_moves_type = uint8(wheel_moves_type(:));
     %% create IntervalSeries
-    wheel_moves_is = types.core.IntervalSeries(...
-                        'timestamps', wheel_moves_int, ...
-                        'data', wheel_moves_type', ...
-                        'description', description, ...
-                        'comments', comments);
-    wheel_moves_beh = types.core.BehavioralEpochs('intervalseries', ...
-                                            wheel_moves_is);
-    %%
-    behavior_mod.nwbdatainterface.set(...
-                    'BehavioralEpochs', wheel_moves_beh);
+    wheel_moves_intervalseries = types.core.IntervalSeries(...
+                            'timestamps', wheel_moves_intervals(:, 2), ...
+                            'data', wheel_moves_type', ...
+                            'description', description, ...
+                            'comments', comments);
+    wheel_moves_beh = types.core.BehavioralEpochs('IntervalSeries', ...
+                                            wheel_moves_intervalseries);
 end
