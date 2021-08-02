@@ -24,11 +24,3 @@ function face_energy = Face(file_prefix, dataunit, description, comments)
         'comments', comments);
 
 end
-
-function rate = Rate(timestamps)
-    arguments
-        timestamps (2, :) double
-    end
-    %% function to calculate rate
-    rate = (timestamps(2, 2) - timestamps(1, 2)) / (timestamps(2, 1));
-end
