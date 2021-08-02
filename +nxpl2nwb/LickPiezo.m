@@ -1,28 +1,23 @@
 % Function to read Lick piezo data files and add to a TimeSeries object
-function lp_timeseries = LickPiezo(f_lp_raw, f_lp_ts, data_unit, ...
-                                   description)
+function lp_timeseries = LickPiezo(file_prefix, dataunit, description)
     arguments
-        f_lp_raw (1, :) string
-        f_lp_ts (1, :) string
-        data_unit char = 'Unknown'
-        description char = 'No description'
+        file_prefix (1, :) string = ''
+        dataunit char = 'Unknown'
+        description char = {'Voltage values from a thin-film piezo '
+                            'connected to the lick spout'}
     end
-    %%
-    lp_raw = readNPY(f_lp_raw);
-    lp_timestamps = readNPY(f_lp_ts);
-    lp_rate = Rate(lp_timestamps);
-    lp_timeseries = types.core.TimeSeries(...
-                'starting_time', lp_timestamps(1, 2), ...
-                'starting_time_rate', lp_rate, ...
-                'data', lp_raw', ...
-                'data_unit', data_unit, ...
-                'description', description);
-end
+    %% strcat(file_prefix, 'face.motionEnergy.npy')
+    fname_lickpiezo_raw = strcat(file_prefix, 'lickPiezo.raw.npy');
+    fname_lickpiezo_timestamps = strcat(file_prefix, ...
+                                         'lickPiezo.timestamps.npy');
 
-function rate = Rate(timestamps)
-    %% calculate rate
-    arguments
-        timestamps (2, :) double
-    end
-    rate = (timestamps(2, 2) - timestamps(1, 2)) / (timestamps(2, 1));
+    lickpiezo_raw = readNPY(fname_lickpiezo_raw);
+    lickpiezo_timestamps = readNPY(fname_lickpiezo_timestamps);
+    lickpiezo_rate = nxpl2nwb.Rate(lickpiezo_timestamps);
+    lp_timeseries = types.core.TimeSeries(...
+                'starting_time', lickpiezo_timestamps(1, 2), ...
+                'starting_time_rate', lickpiezo_rate, ...
+                'data', lickpiezo_raw', ...
+                'data_unit', dataunit, ...
+                'description', description);
 end

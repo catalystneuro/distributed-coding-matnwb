@@ -48,7 +48,7 @@ end
 
 function nwb_file = populate(nwb_file, fields)
     % create file prefix string and processing module
-     file_prefix = strcat('allData/', strjoin(fields(1:6)));
+     file_prefix = strcat('allData/', strjoin(fields(1:6)), '~');
      file_prefix = replace(file_prefix, ' ', '~');
 
      behavior_module = types.core.ProcessingModule(...
@@ -78,34 +78,29 @@ function nwb_file = populate(nwb_file, fields)
      behavior_module.nwbdatainterface.set('PupilTracking', pupil_tracking);
      behavior_module.nwbdatainterface.set('EyeTracking', eye_tracking);
      nwb_file.processing.set('behavior', behavior_module);
-     return;
      %% Convert Face energy data
-     f_face_motion_energy = proper_filename(fields(1:6), ...
-                                    '~face.motionEnergy.npy');
-     f_face_timestamps = proper_filename(fields(1:6), ...
-                                    '~face.timestamps.npy');
-     data_unit = 'arb. unit';
+     dataunit = 'arb. unit';
      description = {'Features extracted from the video of the '
                     'frontal aspect of the subject, including the '
                     'subject face and forearms.'};
      comments = {'The integrated motion energy across the whole frame'
                  ', i.e. sum( (thisFrame-lastFrame)^2 ). '
                  'Some smoothing is applied before this operation.'};
-     behavior_mod = nxpl2nwb.Face(behavior_mod, ...
-                         f_face_motion_energy, f_face_timestamps, ...
-                         data_unit, description, comments);
+     face_energy = nxpl2nwb.Face(file_prefix, dataunit, ...
+                                    description, comments);
+     behavior_module.nwbdatainterface.set(...
+                    'BehavioralTimeSeries', face_energy);
 
      %% Convert Lick piezo data and add as NWB.acquisition
-     f_lp_raw = proper_filename(fields(1:6), '~lickPiezo.raw.npy');
-     f_lp_ts = proper_filename(fields(1:6), '~lickPiezo.timestamps.npy');
      data_unit = 'V';
      description = {'Voltage values from a thin-film piezo '
                     'connected to the lick spout, so that values '
                     'are proportional to deflection '
                     'of the spout and licks can be detected '
                     'as peaks of the signal.'};
-     lp_timeseries = nxpl2nwb.LickPiezo(f_lp_raw, f_lp_ts, data_unit, description);
+     lp_timeseries = nxpl2nwb.LickPiezo(file_prefix, data_unit, description);
      nwb_file.acquisition.set('LickPiezo', lp_timeseries);
+     return;
 
      %% Convert Lick times data
      f_lk_ts = proper_filename(fields(1:6), '~licks.times.npy');

@@ -1,11 +1,11 @@
-% Function to add eye position and pupil tracking to NWB behavioral
-% processing module
+% Function to convert area and xy coordinates of pupil
 function [pupil_tracking, eye_tracking] = Eye(file_prefix, ...
-                        pupil_track_dataunit, pupil_track_description, ...
-                        pupil_track_comments, ...
-                        spatial_dataunit, spatial_description, ...
-                        spatial_comments)
+                                            pupil_track_dataunit, pupil_track_description, ...
+                                            pupil_track_comments, ...
+                                            spatial_dataunit, spatial_description, ...
+                                            spatial_comments)
     arguments
+        % prefix of the file / identifier to locate particular session
         file_prefix (1, :) string = ''
         pupil_track_dataunit char = 'Unknown'
         pupil_track_description char = 'Time series denoting Pupil movements'
@@ -17,9 +17,9 @@ function [pupil_tracking, eye_tracking] = Eye(file_prefix, ...
     %% Read .npy files for eye timestamps, eye area and eye xy positions
 
     % prepare file names
-    fname_eye_timestamps = strcat(file_prefix, '~eye.timestamps.npy');
-    fname_eye_area = strcat(file_prefix, '~eye.area.npy');
-    fname_eye_xy_pos = strcat(file_prefix, '~eye.xyPos.npy');
+    fname_eye_timestamps = strcat(file_prefix, 'eye.timestamps.npy');
+    fname_eye_area = strcat(file_prefix, 'eye.area.npy');
+    fname_eye_xy_pos = strcat(file_prefix, 'eye.xyPos.npy');
 
     % read data files
     eye_timestamps = readNPY(fname_eye_timestamps);

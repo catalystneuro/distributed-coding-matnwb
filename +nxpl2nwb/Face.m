@@ -1,31 +1,28 @@
-% Convert Face energy behavioral data and add behavior processing module
-function behavior_mod = Face(behavior_mod, ...
-                             f_face_motion_energy, f_face_timestamps, ...
-                             data_unit, description, comments)
+% Convert Face energy behavioral data
+function face_energy = Face(file_prefix, dataunit, description, comments)
     arguments
-        behavior_mod {mustBeA(behavior_mod, "types.core.ProcessingModule")}
-        f_face_motion_energy (1, :) string
-        f_face_timestamps (1, :) string
-        data_unit char = 'Unknown'
-        description char = 'No description'
+        file_prefix (1, :) string = ''
+        dataunit char = 'Unknown'
+        description char = {'Features extracted from frontal part '
+                            'of the subject'}
         comments char = 'No comments'
     end
     %% Read data files and create TimeSeries object
-    face_motion_energy = readNPY(f_face_motion_energy);
-    face_timestamps = readNPY(f_face_timestamps);
+    fname_face_motionenergy = strcat(file_prefix, 'face.motionEnergy.npy');
+    fname_face_timestamps = strcat(file_prefix, 'face.timestamps.npy');
+
+    face_motionenergy = readNPY(fname_face_motionenergy);
+    face_timestamps = readNPY(fname_face_timestamps);
+
     face_rate = Rate(face_timestamps);
     face_energy = types.core.TimeSeries(...
-        'data', face_motion_energy', ...
-        'data_unit', data_unit, ...
+        'data', face_motionenergy', ...
+        'data_unit', dataunit, ...
         'starting_time', face_timestamps(1, 2), ...
         'starting_time_rate', face_rate, ...
         'description', description, ...
         'comments', comments);
-    %% create BehavioralTimeSeries object face energy and add to
-    %  behavior processing module
-    face_interface = types.core.BehavioralTimeSeries('timeseries', face_energy);
-    behavior_mod.nwbdatainterface.set(...
-                    'BehavioralTimeSeries', face_interface);
+
 end
 
 function rate = Rate(timestamps)
