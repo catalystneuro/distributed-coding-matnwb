@@ -1,5 +1,5 @@
 % function to convert wheel moves
-function wheel_moves_beh = WheelMoves(file_prefix, description, comments)
+function wheel_moves_behavior = WheelMoves(file_prefix, description, comments)
 
     arguments
         file_prefix (1, :) string
@@ -19,6 +19,6 @@ function wheel_moves_beh = WheelMoves(file_prefix, description, comments)
                             'data', wheel_moves_type', ...
                             'description', description, ...
                             'comments', comments);
-    wheel_moves_beh = types.core.BehavioralEpochs('IntervalSeries', ...
+    wheel_moves_behavior = types.core.BehavioralEpochs('IntervalSeries', ...
                                             wheel_moves_intervalseries);
 end
