@@ -78,6 +78,7 @@ function nwb_file = populate(nwb_file, fields)
      behavior_module.nwbdatainterface.set('PupilTracking', pupil_tracking);
      behavior_module.nwbdatainterface.set('EyeTracking', eye_tracking);
      nwb_file.processing.set('behavior', behavior_module);
+
      %% Convert Face energy data
      dataunit = 'arb. unit';
      description = {'Features extracted from the video of the '
@@ -100,20 +101,23 @@ function nwb_file = populate(nwb_file, fields)
                     'as peaks of the signal.'};
      lp_timeseries = nxpl2nwb.LickPiezo(file_prefix, data_unit, description);
      nwb_file.acquisition.set('LickPiezo', lp_timeseries);
-     return;
 
      %% Convert Lick times data
-     f_lk_ts = proper_filename(fields(1:6), '~licks.times.npy');
      data_unit = 'Unknown';
      description = {'Extracted times of licks, '
                     'from the lickPiezo signal.'};
-     behavior_mod = nxpl2nwb.LickTimes(behavior_mod, f_lk_ts, data_unit, ...
+     lick_events = nxpl2nwb.LickTimes(file_prefix, data_unit, ...
                               description);
+     behavior_module.nwbdatainterface.set(...
+                    'BehavioralEvents', lick_events);
 
      %% Convert spontaneous intervals
-     f_spot_int = proper_filename(fields(1:6), '~spontaneous.intervals.npy');
-     spont_ti = nxpl2nwb.Spontaneous(f_spot_int);
-     nwb_file.intervals.set('spontaneous', spont_ti);
+     description = {'Intervals of sufficient duration when nothing '
+                    'else is going on (no task or stimulus presentation'};
+     spontaneous_timeintervals = nxpl2nwb.Spontaneous(file_prefix, ...
+                                                      description);
+     nwb_file.intervals.set('spontaneous', spontaneous_timeintervals);
+          return;
 
      %% Wheel times
      f_whl_pos = proper_filename(fields(1:6), '~wheel.position.npy');

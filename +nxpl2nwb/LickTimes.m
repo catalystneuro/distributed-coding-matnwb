@@ -1,21 +1,20 @@
-% Function to read lick times data and add as TimeSeries
-function behavior_mod = LickTimes(behavior_mod, f_lk_ts, data_unit, description)
+% Function to read and convert lick times data
+function lick_events = LickTimes(file_prefix, data_unit, description)
     arguments
-        behavior_mod {mustBeA(behavior_mod, "types.core.ProcessingModule")}
-        f_lk_ts (1, :) string
+        file_prefix (1, :) string = ''
         data_unit (1, :) char = 'Unknown'
-        description char = 'No description'
+        description char = 'Times of lick events'
     end
     %% Read data
-    lick_timestamps = readNPY(f_lk_ts);
-    lick_data = ones(length(lick_timestamps), 1);
-    lick_ts = types.core.TimeSeries(...
+    fname_lick_times = strcat(file_prefix, 'licks.times.npy');
+    lick_timestamps = readNPY(fname_lick_times);
+
+    lick_data = uint8(ones(length(lick_timestamps), 1));
+    lick_timeseries = types.core.TimeSeries(...
                     'timestamps', lick_timestamps', ...
                     'data', lick_data, ...
                     'data_unit', data_unit, ...
                     'description', description);
-    lick_behavior = types.core.BehavioralEvents('timeseries', lick_ts);
-    %% add to behavior processing module
-    behavior_mod.nwbdatainterface.set(...
-                    'BehavioralEvents', lick_behavior);
+    lick_events = types.core.BehavioralEvents('TimeSeries', ...
+                                              lick_timeseries);
 end
