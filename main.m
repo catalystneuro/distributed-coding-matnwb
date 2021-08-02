@@ -3,9 +3,9 @@ files = dir('allData');
 total_files = length(files);
 
 % Create a sample meta data with sessions information
-subjects = {'Cori'}';
-dates = {'2016-12-14'}';
-session_ids = {'001'}';
+subjects = {'Hench', 'Cori', 'Forssmann'}';
+dates = {'2017-06-16', '2016-12-14', '2017-11-01'}';
+session_ids = {'001', '001', '001'}';
 meta_table = table(subjects, dates, session_ids);
 
 % loop over iterations
@@ -20,6 +20,9 @@ for sess = 1:size(meta_table, 1)
             date = fields(4);
             session_id = fields(5);
             identifier = fields(7);
+            fname_nwb = strjoin(fields(1:6));
+            fname_nwb = replace(fname_nwb, ' ', '~');
+            fname_nwb = strcat(fname_nwb, '.nwb');
             % if file fields match with req. session details
             if((subject == meta_table.subjects(sess) && ...
                date == meta_table.dates(sess) && ...
@@ -28,7 +31,7 @@ for sess = 1:size(meta_table, 1)
                  % initialize nwb file object
                  nwb_file = initialize_nwb_object(date, session_id);
                  nwb_file = populate(nwb_file, fields);
-                 nwbExport(nwb_file, 'chakpak.nwb');
+                 nwbExport(nwb_file, fname_nwb);
                  found = 1;
             end
         end
