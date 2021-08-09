@@ -3,8 +3,7 @@ function face_energy = Face(file_prefix, dataunit, description, comments)
     arguments
         file_prefix (1, :) string = ''
         dataunit char = 'Unknown'
-        description char = {'Features extracted from frontal part '
-                            'of the subject'}
+        description char = 'Features extracted from frontal part of the subject'
         comments char = 'No comments'
     end
     %% Read data files and create TimeSeries object
