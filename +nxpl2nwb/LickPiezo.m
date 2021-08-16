@@ -3,8 +3,12 @@ function lp_timeseries = LickPiezo(file_prefix, dataunit, description)
     arguments
         file_prefix (1, :) string = ''
         dataunit char = 'Unknown'
+<<<<<<< HEAD
         description char = ['Voltage values from a thin-film piezo ' ...
                             'connected to the lick spout']
+=======
+        description char = 'Voltage values from a thin-film piezo connected to the lick spout'
+>>>>>>> 17d5bbc8ff293be24d8d226347bb13b22115a7c3
     end
     %% strcat(file_prefix, 'face.motionEnergy.npy')
     fname_lickpiezo_raw = strcat(file_prefix, 'lickPiezo.raw.npy');
