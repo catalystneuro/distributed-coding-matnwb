@@ -3,8 +3,8 @@ function face_energy = Face(file_prefix, dataunit, description, comments)
     arguments
         file_prefix (1, :) string = ''
         dataunit char = 'Unknown'
-        description char = {'Features extracted from frontal part '
-                            'of the subject'}
+        description char = ['Features extracted from frontal part ' ...
+                            'of the subject']
         comments char = 'No comments'
     end
     %% Read data files and create TimeSeries object
@@ -14,7 +14,7 @@ function face_energy = Face(file_prefix, dataunit, description, comments)
     face_motionenergy = readNPY(fname_face_motionenergy);
     face_timestamps = readNPY(fname_face_timestamps);
 
-    face_rate = nxpl2nwb.Rate(face_timestamps);
+    face_rate = 1/nxpl2nwb.Rate(face_timestamps);
     face_energy = types.core.TimeSeries(...
         'data', face_motionenergy', ...
         'data_unit', dataunit, ...

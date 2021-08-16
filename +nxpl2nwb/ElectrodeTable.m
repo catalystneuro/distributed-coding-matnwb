@@ -1,20 +1,17 @@
 % Function to create Electrode table with neural data
 function [nwb_file, group_view] = ElectrodeTable(nwb_file, file_prefix, ...
-                                    probe_location, descriptions)
+                                    probe_location, device_description, ...
+                                    probe_electrode_description)
 
     arguments
         nwb_file {mustBeA(nwb_file, "NwbFile")}
         file_prefix (1, :) string = ''
         probe_location char = 'Unknown'
-    end
-
-    arguments (Repeating)
-        descriptions char
+        device_description = 'device description'
+        probe_electrode_description = 'probe description'
     end
 
     fname_probe_descriptions = strcat(file_prefix, 'probes.description.tsv');
-    device_description = cell2mat(descriptions(1));
-    probe_electrode_description = cell2mat(descriptions(2));
     fname_insertion_data = strcat(file_prefix, 'probes.insertion.tsv');
     fname_channel_site = strcat(file_prefix, 'channels.site.npy');
     fname_channel_brain = strcat(file_prefix, 'channels.brainLocation.tsv');
@@ -25,9 +22,10 @@ function [nwb_file, group_view] = ElectrodeTable(nwb_file, file_prefix, ...
     for p = 1:size(probe_descriptions.description, 1)
         device_name = num2str(p);
         probe_device = types.core.Device('description', device_description);
+        device_link = types.untyped.SoftLink(['/general/devices/' device_name]);
         probe_electrode_grp = types.core.ElectrodeGroup(...
                                 'description', probe_electrode_description, ...
-                                'device', probe_device, ...
+                                'device', device_link, ...
                                 'location', probe_location);
         group_name = ['Probe', num2str(p-1)];
         nwb_file.general_extracellular_ephys.set(group_name, ...
@@ -54,13 +52,14 @@ function [nwb_file, group_view] = ElectrodeTable(nwb_file, file_prefix, ...
     vertical_angle = channel_table.vertical_angle;
     horizontal_angle = channel_table.horizontal_angle;
     distance_advanced = channel_table.distance_advanced;
-
     locations = channel_brain.allen_ontology;
     n_rows = length(locations);
     channel_sitepos = readNPY(fname_channel_sitepos);
+    rel_x = channel_sitepos(:, 1);
+    rel_y = channel_sitepos(:, 2);
 
     columns = {'x', 'y', 'z', 'imp', 'location', 'filtering', ...
-               'site_id', 'site_position', 'ccf_ap', 'ccf_dv', 'ccf_lr', ...
+               'site_id', 'rel_x', 'rel_y', 'ccf_ap', 'ccf_dv', 'ccf_lr', ...
                'entry_point_rl', 'entry_point_ap', 'vertical_angle', ...
                'horizontal_angle', 'axial_angle', 'distance_advanced', ...
                'electrode_group'};
@@ -69,7 +68,7 @@ function [nwb_file, group_view] = ElectrodeTable(nwb_file, file_prefix, ...
     y = nan(n_rows, 1);
     z = nan(n_rows, 1);
     imp = nan(n_rows, 1);
-    filtering = repmat('none',n_rows, 1);
+    filtering = repmat({'none'},n_rows, 1);
 
     % prepare electrode group view
     group_view = [];
@@ -79,14 +78,14 @@ function [nwb_file, group_view] = ElectrodeTable(nwb_file, file_prefix, ...
       group_view = [group_view, ith_group];
     end
 
-    electrode_table = table(x, y, z, imp, locations, filtering, ...
-               channel_site, channel_sitepos, channel_brain.ccf_ap, ...
+    electrode_table = table(x, y, z, imp, cellstr(locations), filtering, ...
+               channel_site, rel_x, rel_y, channel_brain.ccf_ap, ...
                channel_brain.ccf_dv, channel_brain.ccf_lr, ...
                entry_point_rl, entry_point_ap, vertical_angle, ...
                horizontal_angle, axial_angle, distance_advanced, ...
                group_view', ...
                'VariableNames', columns);
 
-    electrode_table = util.table2nwb(electrode_table, 'all electrodes');
+    electrode_table = util.table2nwb(electrode_table, 'Electrode table');
     nwb_file.general_extracellular_ephys_electrodes = electrode_table;
 end
