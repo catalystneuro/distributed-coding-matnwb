@@ -59,24 +59,22 @@ function nwb_file = ClustersSpikes(nwb_file, group_view, ...
     %% bin the spikes to clusters
     cluster_info = unique((spike_to_clusters));
     clusters = cell(1, length(cluster_info));
-
-    for i = 1:size(spike_to_clusters, 1)
-        s = uint8(spike_to_clusters(i));
-        if isempty(clusters{s+1})
-            clusters{s+1} = [];
-        end
-        clusters{s+1}{end+1} = i;
+    
+    unique_cluster_values = unique(spike_to_clusters);
+    for i = 1:length(unique_cluster_values)
+        value = unique_cluster_values(i);
+        clusters{i} = find(spike_to_clusters == value);
     end
-
-    times = cell(1, size(clusters', 1));
-    annotations = cell(1, size(clusters', 1));
-    channel = cell(1, size(clusters', 1));
-    duration = cell(1, size(clusters', 1));
-    amps = cell(1, size(clusters', 1));
-    depths = cell(1, size(clusters', 1));
+    
+    times = cell(1, length(clusters));
+    annotations = cell(1, length(clusters));
+    channel = cell(1, length(clusters));
+    duration = cell(1, length(clusters));
+    amps = cell(1, length(clusters));
+    depths = cell(1, length(clusters));
 
     for i = 1:length(clusters)
-        times{i} = spike_times(cell2mat(clusters{i}))';
+        times{i} = spike_times(cell2mat(clusters(i)))';
         annotations{i} = uint8(phy_annotations(i))';
         channel{i} = uint8(cluster_channel(i))';
         duration{i} = uint8(waveform_duration(i))';

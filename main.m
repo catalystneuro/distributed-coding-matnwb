@@ -3,10 +3,6 @@ files = dir('allData');
 total_files = length(files);
 
 % Create a sample meta data with sessions information
-%subjects = {'Hench', 'Cori', 'Forssmann'}';
-%dates = {'2017-06-16', '2016-12-14', '2017-11-01'}';
-%session_ids = {'001', '001', '001'}';
-
 subjects = {'Hench', 'Cori', 'Forssmann', 'Lederberg', 'Moniz'};
 dates = {'2017-06-16', '2016-12-17', '2017-11-01', '2017-12-05', '2017-05-15'};
 session_ids = {'001', '001', '001', '001', '001'};
@@ -177,7 +173,7 @@ function nwb_file = populate(nwb_file, fields)
                                         data_unit, description, comments);
      nwb_file.stimulus_presentation.set(...
          'receptive_field_mapping_sparse_noise', sparsenoise_timeseries);
- 
+
      %% Convert Trials data and create NWB TrialTable
      description = 'trial table for behavioral trials';
      included_desc = ['Importantly, while this ' ...
@@ -353,7 +349,7 @@ function nwb_file = initialize_nwb_object(date, session_id)
                                            'during a head-fixed visual ' ...
                                            'discrimination task. '], ...
         'general_related_publications', 'DOI 10.1038/s41586-019-1787-x', ...
-        'general_keywords', ['Neural coding', 'Neuropixels', 'mouse', ...
+        'general_keywords', {'Neural coding', 'Neuropixels', 'mouse', ...
                             'brain-wide', 'vision', 'visual discrimination', ...
-                            'electrophysiology']);
+                            'electrophysiology'});
 end
