@@ -1,16 +1,44 @@
-% Iteratively call each session in meta table and convert to NWB format
+% Iteratively data folder and find unique sessions
 files = dir('allData');
 total_files = length(files);
 
-% Create a sample meta data with sessions information
-subjects = {'Hench', 'Cori', 'Forssmann', 'Lederberg', 'Moniz'};
-dates = {'2017-06-16', '2016-12-17', '2017-11-01', '2017-12-05', '2017-05-15'};
-session_ids = {'001', '001', '001', '001', '001'};
+subjects = {};
+dates = {};
+session_ids = {};
 
-meta_table = table(subjects, dates, session_ids);
+for f = 1:total_files
+    % get the file name
+    f_name = convertCharsToStrings(files(f).name);
+    if(strlength(f_name) > 10) % filter out data files
+        fields = strsplit(f_name, '~'); % split the name to get fields
+        subject = fields(3);
+        date = fields(4);
+        session_id = fields(5);
+        subjects{end + 1} = char(subject);
+        dates{end + 1} = char(date);
+        session_ids{end + 1} = char(session_id);
+    end
+end
+% all data files
+meta_table = table(subjects', dates', session_ids');
+% filter out unique sessions available
+unq_meta_table = unique(meta_table, 'stable');
+msg = ['Found ', num2str(height(unq_meta_table)), ' sessions'];
+disp(msg);
+
+response_prompt = 'Convert all sessions (1) or only one (0): ';
+response = input(response_prompt);
+
+if(~response)
+    disp('Converting only one session data');
+    unq_meta_table = unq_meta_table(1, :);
+    
+else
+    disp('Converting all sessions data');
+end
 
 % loop over iterations
-for sess = 1:length(subjects)
+for sess = 1:height(unq_meta_table)
     found = 0; % flag to check the particular session files are available
     for f = 1:total_files
         % get the file name
@@ -25,9 +53,9 @@ for sess = 1:length(subjects)
             fname_nwb = replace(fname_nwb, ' ', '~');
             fname_nwb = strcat(fname_nwb, '.nwb');
             % if file fields match with req. session details
-            if((subject == meta_table.subjects(sess) && ...
-               date == meta_table.dates(sess) && ...
-               session_id == meta_table.session_ids(sess)) && ~found)
+            if((subject == unq_meta_table.Var1(sess) && ...
+               date == unq_meta_table.Var2(sess) && ...
+               session_id == unq_meta_table.Var3(sess)) && ~found)
                  % start converting session data
                  % initialize nwb file object
                  nwb_file = initialize_nwb_object(date, session_id);
@@ -38,15 +66,13 @@ for sess = 1:length(subjects)
         end
     end
     if(found ~= 0)
-        msg = sprintf('Processed successfully subject id: %s date: %s session id: %s', ...
-                      string(meta_table.subjects(sess)), ...
-                      string(meta_table.dates(sess)), ...
-                      string(meta_table.session_ids(sess)));
+        msg = sprintf('Processed subject id: %s, date: %s', ...
+                      string(unq_meta_table.Var1(sess)), ...
+                      string(unq_meta_table.Var2(sess)));
     else
-        msg = sprintf('Unable to find subject id: %s date: %s session id: %s', ...
-                      string(meta_table.subjects(sess)), ...
-                      string(meta_table.dates(sess)), ...
-                      string(meta_table.session_ids(sess)));
+        msg = sprintf('Unable to find subject id: %s date: %s', ...
+                      string(unq_meta_table.Var1(sess)), ...
+                      string(unq_meta_table.Var2(sess)));
     end
     disp(msg);
 end
@@ -173,7 +199,7 @@ function nwb_file = populate(nwb_file, fields)
                                         data_unit, description, comments);
      nwb_file.stimulus_presentation.set(...
          'receptive_field_mapping_sparse_noise', sparsenoise_timeseries);
-
+ 
      %% Convert Trials data and create NWB TrialTable
      description = 'trial table for behavioral trials';
      included_desc = ['Importantly, while this ' ...
