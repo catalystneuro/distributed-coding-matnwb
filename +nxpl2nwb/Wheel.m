@@ -1,0 +1,26 @@
+% Function to convert wheel position data
+function wheel_timeseries = Wheel(file_prefix, data_unit, ...
+                                  data_conversion, description, comments)
+    arguments
+        file_prefix (1,:) string = ''
+        data_unit char = 'Unknown'
+        data_conversion double = 1
+        description char = 'position of wheel'
+        comments char = 'No comments'
+    end
+    %% Read data files
+    fname_wheel_position = strcat(file_prefix, 'wheel.position.npy');
+    fname_wheel_timestamps = strcat(file_prefix, 'wheel.timestamps.npy');
+    wheel_positions = readNPY(fname_wheel_position);
+    wheel_timestamps = readNPY(fname_wheel_timestamps);
+    wheel_rate = 1/nxpl2nwb.Rate(wheel_timestamps);
+    %% create TimeSeries object
+    wheel_timeseries = types.core.TimeSeries(...
+                            'starting_time', wheel_timestamps(1, 2), ...
+                            'starting_time_rate', wheel_rate, ...
+                            'data', int8(wheel_positions)', ...
+                            'data_unit', data_unit, ...
+                            'data_conversion', data_conversion, ...
+                            'description', description, ...
+                            'comments', comments);
+end
