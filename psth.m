@@ -26,8 +26,15 @@
 % n_bins = 50;
 % psth_plot_option = 'gaussian';
 % std = 0.03;
-% PSTH(nwb_file, unit_id, group_by, before_time, after_time, n_bins, ...
-%      psth_plot_option, std);
+% psth(...
+%    nwb_file, ...
+%    unit_id = 5, ...
+%    group_by = 'visual_stimulus_left_contrast', ...
+%    before_time = -20, ...
+%    after_time = 10, ...
+%    n_bins = 50, ...
+%    psth_plot_option = 'gaussian', ...
+%    std = 0.03);
 %
 %%
 % Note:
@@ -35,19 +42,25 @@
 %    trial start times
 % 2. unique values in group_by variable's data should not be more than 5
 %%
-function psth(nwb, unit_id, group_by, before_time, after_time, n_bins, ...
-              psth_plot_option, std)
+function psth(nwb, options)
     arguments
         nwb {mustBeA(nwb, "NwbFile")}
-        unit_id uint16
-        group_by char = 'no-condition'
-        before_time double = -0.5
-        after_time double = 1.0
-        n_bins double = 30
-        psth_plot_option char = 'histogram'
-        std double = 0.05
+        options.unit_id uint16
+        options.group_by char = 'no-condition'
+        options.before_time double = -0.5
+        options.after_time double = 1.0
+        options.n_bins double = 30
+        options.psth_plot_option char = 'histogram'
+        options.std double = 0.05
     end
     %%
+    unit_id = options.unit_id;
+    group_by = options.group_by;
+    before_time = options.before_time;
+    after_time = options.after_time;
+    n_bins = options.n_bins;
+    psth_plot_option = options.psth_plot_option;
+    std = options.std;
     % new figure to detach from gui figure
     f = figure();
     % check valid before time

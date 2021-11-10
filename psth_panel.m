@@ -7,12 +7,12 @@ function psth_panel(nwb)
     ha.Units = 'normalized';
     %%
     y_offset = 500;
-    pad_height = 50;    
+    pad_height = 50;
     header = uicontrol('Style', 'text', ...
                        'String', 'PSTH panel', ...
                        'Position', [120, y_offset-30, 80, 50], ...
                        'fontsize', 10);
-    %%           
+    %%
     valid_groups = [];
     groups_available = nwb.intervals_trials.vectordata.keys();
     for i = 1:length(groups_available)
@@ -24,7 +24,7 @@ function psth_panel(nwb)
         end
     end
     valid_groups = ['no-condition', valid_groups];
-    %%                   
+    %%
     groupBymenu = uicontrol('Style', 'text', ...
                             'String', 'Condition:', ...
                             'Position', ...
@@ -74,7 +74,7 @@ function psth_panel(nwb)
                              'Position', ...
                              [160, y_offset - 6*pad_height+30, 70, 30], ...
                              'String', 1.0);
-    %%                        
+    %%
     plotOptions = {'histogram', 'gaussian'};
     plotOptionmenu = uicontrol('Style', 'text', ...
                                'String', 'PSTH plot type:', ...
@@ -104,18 +104,21 @@ function psth_panel(nwb)
     movegui(f,'center');
     %% callback function to plot
     function plotbutton_Callback(source, eventdata)
-        unit_id = str2num(get(unitIdTextBox, 'string'));
+        input_unit_id = str2num(get(unitIdTextBox, 'string'));
         val = groupByTextBox.Value;
         str = groupByTextBox.String;
-        group_by = str{val};
-        before_time = str2num(get(beforeTimeTextBox, 'string'));
-        after_time = str2num(get(afterTimeTextBox, 'string'));
-        n_bins = str2num(get(nbinsTextBox, 'string'));
+        input_group_by = str{val};
+        input_before_time = str2num(get(beforeTimeTextBox, 'string'));
+        input_after_time = str2num(get(afterTimeTextBox, 'string'));
+        input_n_bins = str2num(get(nbinsTextBox, 'string'));
         val = plotOptionTextBox.Value;
         str = plotOptionTextBox.String;
-        plot_option = str{val};
-        std = str2num(get(stdTextBox, 'string'));
-        psth(nwb, unit_id, group_by, before_time, after_time, n_bins, ...
-             plot_option, std);
+        input_plot_option = str{val};
+        input_std = str2num(get(stdTextBox, 'string'));
+        psth(nwb, unit_id = input_unit_id, ...
+             group_by = input_group_by, ...
+             before_time = input_before_time, ...
+             after_time = input_after_time, n_bins = input_n_bins, ...
+             psth_plot_option = input_plot_option, std = input_std);
     end
 end
