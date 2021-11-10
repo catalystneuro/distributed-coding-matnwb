@@ -38,8 +38,7 @@
 %
 %%
 % Note:
-% 1. The unit of time in before_time/after_time should be equal to
-%    trial start times
+% 1. unit for all time arguments (before_time/after_time) should be in seconds
 % 2. unique values in group_by variable's data should not be more than 5
 %%
 function psth(nwb, options)
