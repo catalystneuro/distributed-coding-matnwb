@@ -4,6 +4,8 @@
 % ARGUMENTS
 % nwb   -       Input NWB file
 % unit_id -     Unit Id of unit in Units table
+% align_to -    Trial event to which all trials are aligned (by default,
+%               start_time)
 % group_by -    name of the data type to group (by default, no grouping)
 % before_time - left open range of time interval. Generally, it is negative
 %               (by default before_time = -0.5 s)
@@ -22,6 +24,7 @@
 % unit_id = 5;
 % before_time = -20;
 % after_time = 10;
+% align_to = 'visual_stimulus_time'
 % group_by = 'visual_stimulus_left_contrast';
 % n_bins = 50;
 % psth_plot_option = 'gaussian';
@@ -29,6 +32,7 @@
 % psth(...
 %    nwb_file, ...
 %    unit_id = 5, ...
+%    align_to = 'visual_stimulus_time', ...
 %    group_by = 'visual_stimulus_left_contrast', ...
 %    before_time = -20, ...
 %    after_time = 10, ...
@@ -45,6 +49,7 @@ function psth(nwb, options)
     arguments
         nwb {mustBeA(nwb, "NwbFile")}
         options.unit_id uint16
+        options.align_to char = 'start_time'
         options.group_by char = 'no-condition'
         options.before_time double = -0.5
         options.after_time double = 1.0
@@ -54,6 +59,7 @@ function psth(nwb, options)
     end
     %%
     unit_id = options.unit_id;
+    align_to = options.align_to;
     group_by = options.group_by;
     before_time = options.before_time;
     after_time = options.after_time;
@@ -82,8 +88,12 @@ function psth(nwb, options)
     spike_times = util.read_indexed_column(nwb.units.spike_times_index, ...
                                            nwb.units.spike_times, ...
                                            unit_id);
-    % get list of trial start times
-    trial_start_times = nwb.intervals_trials.start_time.data.load;
+    % get list of reference event timestamps
+    if strcmp(align_to, 'start_time')
+        ref_event_times = nwb.intervals_trials.start_time.data.load;
+    else
+        ref_event_times = nwb.intervals_trials.vectordata.get(align_to).data.load;
+    end
     % get group-by data from Trials table, if no group_by set flag = 1
     no_group_flag = 0;
     groupby_data = 1;
@@ -105,8 +115,8 @@ function psth(nwb, options)
     % load spike times with pad +- pad_width
     start_offset = before_time - pad_width;
     end_offset = after_time + pad_width;
-    for i = 1:length(trial_start_times)
-        start_time = trial_start_times(i);
+    for i = 1:length(ref_event_times)
+        start_time = ref_event_times(i);
         psth_data{end+1} = spike_times(...
                            spike_times >= start_time + start_offset & ...
                            spike_times <= start_time + end_offset) - ...
@@ -141,7 +151,7 @@ function psth(nwb, options)
     end
     % chops off padded part
     xlim([before_time after_time]);
-    ylim([0 length(trial_start_times)]);
+    ylim([0 length(ref_event_times)]);
     xline(0, '--'); % mark trial start time
     ylabel('Trials');
     title('Spike times');
@@ -206,9 +216,12 @@ function psth(nwb, options)
         xlim([before_time after_time]);
         ylim([0 inf]);
         ylabel('Rate (Hz)');
+        xline(0, '--'); % mark trial start time
     end
     % add x label only for last subplot
-    xlabel('time (s)');
+    xlabel(['time relative to ', ...
+        replace(align_to, '_', ' '), ...
+        ' (s)']);
     title_msg = 'PSTH';
     if(strcmp(psth_plot_option, 'gaussian'))
             title_msg = ['PSTH smoothed with Gaussian '...
