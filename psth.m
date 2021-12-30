@@ -4,6 +4,9 @@
 % ARGUMENTS
 % nwb   -       Input NWB file
 % unit_id -     Unit Id of unit in Units table
+% unit_info -   Structure with details describing unit. Fields include area
+%               and probe. If none provided, other details will be used for
+%               figure title.
 % align_to -    Trial event to which all trials are aligned (by default,
 %               start_time)
 % group_by -    name of the data type to group (by default, no grouping)
@@ -49,6 +52,7 @@ function psth(nwb, options)
     arguments
         nwb {mustBeA(nwb, "NwbFile")}
         options.unit_id uint16
+        options.unit_info struct = struct()
         options.align_to char = 'start_time'
         options.group_by char = 'no-condition'
         options.before_time double = -0.5
@@ -59,6 +63,7 @@ function psth(nwb, options)
     end
     %%
     unit_id = options.unit_id;
+    unit_info = options.unit_info;
     align_to = options.align_to;
     group_by = options.group_by;
     before_time = options.before_time;
@@ -245,14 +250,21 @@ function psth(nwb, options)
         replace(align_to, '_', ' '), ...
         ' (s)']);
     title_msg = 'PSTH';
-    if(strcmp(psth_plot_option, 'gaussian'))
-            title_msg = ['PSTH smoothed with Gaussian '...
-                         'filter (\sigma=', num2str(std), ')'];
+    if isempty(fieldnames(unit_info))
+        if(strcmp(psth_plot_option, 'gaussian'))
+                title_msg = ['PSTH smoothed with Gaussian '...
+                             'filter (\sigma=', num2str(std), ')'];
+        end
+        if(~no_group_flag)
+            title_msg = [title_msg, ' grouped by ', ...
+                         replace(group_by, '_', ' ')];
+        end
+    else
+        title_msg = [title_msg, ...
+            ' for unit in region ', unit_info.area, ...
+            '; Probe ',num2str(unit_info.probe)];
     end
-    if(~no_group_flag)
-        title_msg = [title_msg, ' grouped by ', ...
-                     replace(group_by, '_', ' ')];
-    end
+
     sgtitle(title_msg);
     hold off;
 end
