@@ -103,7 +103,7 @@ function psth(nwb, options)
     else
         groupby_data = nwb.intervals_trials.vectordata.get(group_by).data.load;
         % check unique data in group_by <= 5
-        unique_data = unique(groupby_data);
+        unique_data = sort(unique(groupby_data));
         if(length(unique_data) > 5)
             error(['no. of unique values in group-by variable' ...
                   'cannot be more than five']);
@@ -161,6 +161,12 @@ function psth(nwb, options)
     if(strcmp(psth_plot_option, 'gaussian'))
         visible_mode = 'off';
     end
+    % set text for enumerated categorical types
+    if strcmp(group_by, 'feedback_type')
+        unique_data = {'Punishment','Reward'};
+    elseif strcmp(group_by, 'response_choice')
+        unique_data = {'Right','No-Go','Left'};
+    end
     % number of trials
     num_trials = nwb.intervals_trials.id.data.dims;
     % time points for gaussian curve
@@ -179,11 +185,17 @@ function psth(nwb, options)
                                  'Normalization', 'countdensity');
         firing_rate = firing_rate / num_trials;
         t_midpoints = h_edges(1:length(h_edges)-1)+(h_edges(2)-h_edges(1))/2;
-        bar(t_midpoints, firing_rate, ...
-            'DisplayName', num2str(unique_data(u)), ...
+        b = bar(t_midpoints, firing_rate, ...
             'FaceColor', color_palette{u}, ...
             'BarWidth', 1, ...
             'Visible', visible_mode);
+        if iscell(unique_data)
+            b.DisplayName = unique_data{u};
+        else
+            b.DisplayName = num2str(unique_data(u));
+        end
+        
+       
         % apply gaussian filter
         if(~strcmp(psth_plot_option, 'histogram'))
             gauss_edges = linspace(before_time - pad_width, ...
@@ -200,17 +212,27 @@ function psth(nwb, options)
             gaussian_filtered = conv(bin_rate, gauss_window, 'same');
             valid_indices = find(gauss_edges >= before_time & ...
                                  gauss_edges <= after_time);
-            plot(gauss_edges(valid_indices), ...
+             p = plot(gauss_edges(valid_indices), ...
                  gaussian_filtered(valid_indices), ...
                  'linewidth', 2, ...
-                 'Color', color_palette{u}, ...
-                 'DisplayName', num2str(unique_data(u)));
+                 'Color', color_palette{u});
+             if iscell(unique_data)
+                p.DisplayName = unique_data{u};
+            else
+                p.DisplayName = num2str(unique_data(u));
+            end
         end
 
         % update title according to plot options
         if(~no_group_flag)
-            title_msg = [replace(group_by, '_', ' '), ...
+            if iscell(unique_data)
+                title_msg = [replace(group_by, '_', ' '), ...
+                         ' = ', unique_data{u}];
+            else
+                title_msg = [replace(group_by, '_', ' '), ...
                          ' = ', num2str(unique_data(u))];
+
+            end
             title(title_msg);
         end
         xlim([before_time after_time]);
