@@ -135,7 +135,7 @@ function psth(nwb, options)
                 plot(row_data, ones(length(row_data),1) * counter, '.', ...
                      'Color', color_palette{u}, ...
                      'DisplayName', num2str(unique_data(u)));
-                groupby_spike_times{u}{end+1} = row_data;
+                groupby_spike_times{u}{end+1} = row_data';
             end
         end
     end
