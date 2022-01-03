@@ -213,14 +213,8 @@ function F = psth(nwb, options)
 
         % update title according to plot options
         if(~no_group_flag)
-            if iscell(unique_data)
-                title_msg = [replace(group_by, '_', ' '), ...
-                         ' = ', unique_data{u}];
-            else
-                title_msg = [replace(group_by, '_', ' '), ...
-                         ' = ', num2str(unique_data(u))];
-
-            end
+            title_msg = [replace(group_by, '_', ' '), ...
+                     ' = ', num2str(unique_data(u))];
             title(title_msg);
         end
         xlim([before_time after_time]);
