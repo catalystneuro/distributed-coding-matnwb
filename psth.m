@@ -24,14 +24,6 @@
 %%
 % EXAMPLE
 % nwb_file = nwbRead('example.nwb');
-% unit_id = 5;
-% before_time = -20;
-% after_time = 10;
-% align_to = 'visual_stimulus_time'
-% group_by = 'visual_stimulus_left_contrast';
-% n_bins = 50;
-% psth_plot_option = 'gaussian';
-% std = 0.03;
 % psth(...
 %    nwb_file, ...
 %    unit_id = 5, ...
