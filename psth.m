@@ -86,17 +86,16 @@ function F = psth(nwb, options)
         error(['Invalid `psth_plot_option` value' ...
                'Only `histogram` & `gaussian` are valid']);
     end
-    % get spike times of given unit id in open interval
-    % (before_time, after_time)
-    spike_times = util.read_indexed_column(nwb.units.spike_times_index, ...
-                                           nwb.units.spike_times, ...
-                                           unit_id);
-    % get list of reference event timestamps
-    if strcmp(align_to, 'start_time')
-        ref_event_times = nwb.intervals_trials.start_time.data.load;
-    else
-        ref_event_times = nwb.intervals_trials.vectordata.get(align_to).data.load;
-    end
+    % load spike times with pad +- pad_width
+    pad_width = 2.4 * std;
+    start_offset = before_time - pad_width;
+    end_offset = after_time + pad_width;
+    % call utility function
+    psth_data = util.loadEventAlignedSpikeTimes( nwb, unit_id, ...
+        'before_time', abs(start_offset), ...
+        'after_time', abs(end_offset), ...
+        'align_to', align_to ...
+    );
     % get group-by data from Trials table, if no group_by set flag = 1
     no_group_flag = 0;
     groupby_data = 1;
@@ -113,18 +112,6 @@ function F = psth(nwb, options)
         end
     end
     num_rows_plot = length(unique_data) + 1;
-    pad_width = 2.4 * std;
-    psth_data = {};
-    % load spike times with pad +- pad_width
-    start_offset = before_time - pad_width;
-    end_offset = after_time + pad_width;
-    for i = 1:length(ref_event_times)
-        start_time = ref_event_times(i);
-        psth_data{end+1} = spike_times(...
-                           spike_times >= start_time + start_offset & ...
-                           spike_times <= start_time + end_offset) - ...
-                           start_time;
-    end
     %% Spike times plot
     color_palette = {'#1f77b4'; '#ff7f0e'; '#2ca02c'; ...
                      '#d62728'; '#9467bd'};
@@ -154,7 +141,7 @@ function F = psth(nwb, options)
     end
     % chops off padded part
     xlim([before_time after_time]);
-    ylim([0 length(ref_event_times)]);
+    ylim([0 length(psth_data)]);
     xline(0, '--'); % mark trial start time
     ylabel('Trials');
     title('Spike times');
