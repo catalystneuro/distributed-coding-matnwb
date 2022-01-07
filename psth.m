@@ -1,9 +1,11 @@
-% PSTH Plot Peristimulus time histogram categorized by
+% F = PSTH Plot Peristimulus time histogram categorized by
 % given trial data found in trials table columns
 %%
 % ARGUMENTS
 % nwb   -       Input NWB file
 % unit_id -     Unit Id of unit in Units table
+% align_to -    Trial event to which all trials are aligned (by default,
+%               start_time)
 % group_by -    name of the data type to group (by default, no grouping)
 % before_time - left open range of time interval. Generally, it is negative
 %               (by default before_time = -0.5 s)
@@ -17,18 +19,15 @@
 % std -         standard deviation of Gaussian filter
 %               (by default std = 0.05)
 %%
+% Returns
+% F - figure handle
+%%
 % EXAMPLE
 % nwb_file = nwbRead('example.nwb');
-% unit_id = 5;
-% before_time = -20;
-% after_time = 10;
-% group_by = 'visual_stimulus_left_contrast';
-% n_bins = 50;
-% psth_plot_option = 'gaussian';
-% std = 0.03;
 % psth(...
 %    nwb_file, ...
 %    unit_id = 5, ...
+%    align_to = 'visual_stimulus_time', ...
 %    group_by = 'visual_stimulus_left_contrast', ...
 %    before_time = -20, ...
 %    after_time = 10, ...
@@ -41,10 +40,11 @@
 % 1. unit for all time arguments (before_time/after_time) should be in seconds
 % 2. unique values in group_by variable's data should not be more than 5
 %%
-function psth(nwb, options)
+function F = psth(nwb, options)
     arguments
         nwb {mustBeA(nwb, "NwbFile")}
         options.unit_id uint16
+        options.align_to char = 'start_time'
         options.group_by char = 'no-condition'
         options.before_time double = -0.5
         options.after_time double = 1.0
@@ -54,6 +54,7 @@ function psth(nwb, options)
     end
     %%
     unit_id = options.unit_id;
+    align_to = options.align_to;
     group_by = options.group_by;
     before_time = options.before_time;
     after_time = options.after_time;
@@ -61,7 +62,7 @@ function psth(nwb, options)
     psth_plot_option = options.psth_plot_option;
     std = options.std;
     % new figure to detach from gui figure
-    f = figure();
+    F = figure();
     % check valid before time
     if(after_time <= before_time)
         error('after_time must be greater than before_time');
@@ -77,13 +78,16 @@ function psth(nwb, options)
         error(['Invalid `psth_plot_option` value' ...
                'Only `histogram` & `gaussian` are valid']);
     end
-    % get spike times of given unit id in open interval
-    % (before_time, after_time)
-    spike_times = util.read_indexed_column(nwb.units.spike_times_index, ...
-                                           nwb.units.spike_times, ...
-                                           unit_id);
-    % get list of trial start times
-    trial_start_times = nwb.intervals_trials.start_time.data.load;
+    % load spike times with pad +- pad_width
+    pad_width = 2.4 * std;
+    start_offset = before_time - pad_width;
+    end_offset = after_time + pad_width;
+    % call utility function
+    psth_data = util.loadTrialAlignedSpikeTimes( nwb, unit_id, ...
+        'before_time', abs(start_offset), ...
+        'after_time', abs(end_offset), ...
+        'align_to', align_to ...
+    );
     % get group-by data from Trials table, if no group_by set flag = 1
     no_group_flag = 0;
     groupby_data = 1;
@@ -93,25 +97,13 @@ function psth(nwb, options)
     else
         groupby_data = nwb.intervals_trials.vectordata.get(group_by).data.load;
         % check unique data in group_by <= 5
-        unique_data = unique(groupby_data);
+        unique_data = sort(unique(groupby_data));
         if(length(unique_data) > 5)
             error(['no. of unique values in group-by variable' ...
                   'cannot be more than five']);
         end
     end
     num_rows_plot = length(unique_data) + 1;
-    pad_width = 2.4 * std;
-    psth_data = {};
-    % load spike times with pad +- pad_width
-    start_offset = before_time - pad_width;
-    end_offset = after_time + pad_width;
-    for i = 1:length(trial_start_times)
-        start_time = trial_start_times(i);
-        psth_data{end+1} = spike_times(...
-                           spike_times >= start_time + start_offset & ...
-                           spike_times <= start_time + end_offset) - ...
-                           start_time;
-    end
     %% Spike times plot
     color_palette = {'#1f77b4'; '#ff7f0e'; '#2ca02c'; ...
                      '#d62728'; '#9467bd'};
@@ -135,13 +127,13 @@ function psth(nwb, options)
                 plot(row_data, ones(length(row_data),1) * counter, '.', ...
                      'Color', color_palette{u}, ...
                      'DisplayName', num2str(unique_data(u)));
-                groupby_spike_times{u}{end+1} = row_data;
+                groupby_spike_times{u}{end+1} = row_data';
             end
         end
     end
     % chops off padded part
     xlim([before_time after_time]);
-    ylim([0 length(trial_start_times)]);
+    ylim([0 length(psth_data)]);
     xline(0, '--'); % mark trial start time
     ylabel('Trials');
     title('Spike times');
@@ -174,6 +166,7 @@ function psth(nwb, options)
             'FaceColor', color_palette{u}, ...
             'BarWidth', 1, ...
             'Visible', visible_mode);
+
         % apply gaussian filter
         if(~strcmp(psth_plot_option, 'histogram'))
             gauss_edges = linspace(before_time - pad_width, ...
@@ -200,15 +193,18 @@ function psth(nwb, options)
         % update title according to plot options
         if(~no_group_flag)
             title_msg = [replace(group_by, '_', ' '), ...
-                         ' = ', num2str(unique_data(u))];
+                        ' = ', num2str(unique_data(u))];
             title(title_msg);
         end
         xlim([before_time after_time]);
         ylim([0 inf]);
         ylabel('Rate (Hz)');
+        xline(0, '--'); % mark trial start time
     end
     % add x label only for last subplot
-    xlabel('time (s)');
+    xlabel(['time relative to ', ...
+        replace(align_to, '_', ' '), ...
+        ' (s)']);
     title_msg = 'PSTH';
     if(strcmp(psth_plot_option, 'gaussian'))
             title_msg = ['PSTH smoothed with Gaussian '...
